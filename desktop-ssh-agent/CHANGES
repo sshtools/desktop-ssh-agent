@@ -1,0 +1,14 @@
+Desktop SSH Agent 1.1.0 - Oct 7, 2019
+
+- Rebrand to JADAPTIVE
+- Ported to use the new Maverick Synergy open-source SSH API
+- Fixed periodic overwrite of known_hosts file
+
+-----------------
+
+Desktop SSH Agent 1.0.0 - Jun  29, 2018
+
+- System tray icon with quit option.
+- Replace ssh-agent to authenticate with keys on Mobile SSH Agent app.
+- authorize, deauthorize commands for establishing trust with Gateway Service.
+- authorizedKeys command to output list of users public keys

@@ -1,0 +1,49 @@
+This Software End User License Agreement ("Agreement") is between you both the individual installing the Program and any single legal entity for which the individual is acting ("You" or "Your") and JADAPTIVE Limited. ("JADAPTIVE").
+
+TAKING ANY STEP TO SET UP OR INSTALL THE PROGRAM MEANS THAT YOU ACCEPT ALL OF THE TERMS OF THIS LICENSE AGREEMENT. PERMISSION TO DOWNLOAD AND/OR USE THE PROGRAM IS EXPRESSLY CONDITIONED ON YOUR FOLLOWING THESE TERMS. WRITTEN OR ELECTRONIC APPROVAL IS NOT REQUIRED TO MAKE THIS AGREEMENT VALID AND ENFORCEABLE. IF YOU DO NOT AGREE TO ALL OF THE TERMS OF THIS AGREEMENT, YOU ARE NOT AUTHORIZED TO USE THE PROGRAM AND MUST STOP INSTALLING IT OR UNINSTALL IT, AS APPLICABLE.
+
+1. DEFINITIONS
+
+1.1 "Documentation" means written documentation, specifications and help content made generally available by JADAPTIVE to aid in installing and using the Program.
+
+1.2 "Program" means all or any part of JADAPTIVE's software for JADAPTIVE Product for upgrade and updates purpose licensed to You by JADAPTIVE under this Agreement.
+
+1.3 "JADAPTIVE Product" means the JADAPTIVE products with You have downloaded and installed.
+
+2. PROGRAM LICENSE
+
+2.1 Limited License. Subject to this Agreement's restrictions, JADAPTIVE grants to You a limited, non-exclusive, non-transferable license (without the right to sublicense):
+
+(a) to install a single copy of the Program on Your own equipment, solely for Your use of the JADAPTIVE Product as described in the Documentation ("Authorized Use");
+
+(b) to use the Documentation in support of Your Authorized Use; and
+
+(c) to make one copy of the Program solely for backup purposes, provided that all titles and trademark, copyright and restricted rights notices are reproduced on the copy.
+
+2.2 Restrictions. You will not copy or use the Program or Documentation except as expressly permitted by this Agreement. You will not transfer, sublicense, rent, lease or lend the Program, or use it for third-party training, commercial time-sharing or service bureau use. You will not Yourself or through any third party modify, reverse engineer, disassemble or decompile the Program, except to the extent expressly permitted by applicable law, and then only after You have notified JADAPTIVE in writing of Your intended activities.
+
+2.3 Ownership. JADAPTIVE or its licensor retains all right, title and interest in and to all patent, copyright, trademark, trade secret and other intellectual property rights in the Program and Documentation, and any derivative works thereof. You do not acquire any other rights, express or implied, beyond the limited license set forth in this Agreement. 
+
+3. WARRANTY DISCLAIMER
+
+THE PROGRAM AND DOCUMENTATION ARE PROVIDED "AS IS" WITHOUT ANY REPRESENTATIONS OR WARRANTIES, AND YOU AGREE TO USE THEM AT YOUR SOLE RISK. TO THE FULLEST EXTENT PERMISSIBLE BY LAW, PIONEER EXPRESSLY DISCLAIMS ALL WARRANTIES OF ANY KIND WITH RESPECT TO THE PROGRAM AND DOCUMENTATION, WHETHER EXPRESS, IMPLIED, STATUTORY, OR ARISING OUT OF COURSE OF PERFORMANCE, COURSE OF DEALING OR USAGE OF TRADE, INCLUDING ANY WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, SATISFACTORY QUALITY, ACCURACY, TITLE OR NON-INFRINGEMENT.
+
+4. DAMAGES AND REMEDIES FOR BREACH
+
+You agree that any breach of this Agreement's restrictions would cause JADAPTIVE irreparable harm for which money damages alone would be inadequate. In addition to damages and any other remedies to which JADAPTIVE may be entitled, You agree that JADAPTIVE may seek injunctive relief to prevent the actual, threatened or continued breach of this Agreement.
+
+5. TERMINATION
+
+This Agreement is effective until terminated. JADAPTIVE may terminate this Agreement at any time upon Your breach of any provision. If this Agreement is terminated, You will stop using the Program, permanently delete it from the equipment where it resides, and destroy all copies of the Program and Documentation in Your possession, confirming to JADAPTIVE in writing that You have done so. Sections 2.2, 2.3, 2.4, 3, 4, 5 and 6 will continue in effect after this Agreement's termination.
+
+6. GENERAL TERMS
+
+6.1 Law. This Agreement and all matters arising out of it are governed by the laws of the country where Your JADAPTIVE Product was originally purchased, and the parties irrevocably consent to jurisdiction and venue in the courts of that country's national capital. Application of the United Nations Convention on Contracts for the International Sales of Goods is expressly excluded.
+
+6.2 Limitation of Liability. In no event will JADAPTIVE or its subsidiaries be liable in connection with this Agreement or its subject matter, under any theory of liability, for any indirect, incidental, special, consequential or punitive damages, or damages for lost profits, revenue, business, savings, data, use, or cost of substitute procurement, even if advised of the possibility of such damages or if such damages are foreseeable. In no event will JADAPTIVE's liability for all damages exceed the amounts actually paid by You to JADAPTIVE for the Program. The parties acknowledge that the liability limits and risk allocation in this Agreement are reflected in the Program price and are essential elements of the bargain between the parties, without which JADAPTIVE would not have provided the Program or entered into this Agreement.
+
+6.3 Severability and Waiver. If any provision of this Agreement is held to be illegal, invalid or otherwise unenforceable, that provision will be enforced to the extent possible or, if incapable of enforcement, deemed to be severed and deleted from this Agreement, and the remainder will continue in full force and effect. The waiver by either party of any default or breach of this Agreement will not waive any other or subsequent default or breach. 
+
+6.4 No Assignment. You may not assign, sell, transfer, delegate or otherwise dispose of this Agreement or any rights or obligations under it, whether voluntarily or involuntarily, by operation of law or otherwise, without JADAPTIVE's prior written consent. Any purported assignment, transfer or delegation by You will be null and void. Subject to the foregoing, this Agreement will be binding upon and will inure to the benefit of the parties and their respective successors and assigns.
+
+6.5 Entire Agreement. This Agreement constitutes the entire agreement between the parties and supersedes all prior or contemporaneous agreements or representations, whether written or oral, concerning its subject matter. This Agreement may not be modified or amended without JADAPTIVE's prior and express written consent, and no other act, document, usage or custom will be deemed to amend or modify this Agreement.
