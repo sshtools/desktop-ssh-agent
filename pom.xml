@@ -146,6 +146,10 @@
 					<excludes>
 						<exclude>**/LICENSE</exclude>
 						<exclude>templates/**</exclude>
+						<exclude>EULA.txt</exclude>
+						<exclude>CHANGES</exclude>
+						<exclude>agent.log</exclude>
+						<exclude>forker.cfg</exclude>
 						<exclude>src/test/resources/**</exclude>
 						<exclude>src/main/resources/**</exclude>
 					</excludes>
