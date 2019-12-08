@@ -34,16 +34,21 @@ import com.sshtools.common.publickey.SshKeyUtils;
 import com.sshtools.common.ssh.components.SshPublicKey;
 
 public class Settings {
+	
+	public enum IconMode {
+		AUTO, DARK, LIGHT
+	}
 
 	static Settings instance;
 	
 	static final File SETTINGS_FILE = new File(MobileAgent.CONF_FOLDER, "preferences.properties");
-	String terminalCommand;
-	String terminalArguments;
-	boolean useBuiltInTerminal;
-	boolean useDarkIcon;
-	Set<Long> favoriteIds = new HashSet<Long>();
-	Set<File> keyfiles= new HashSet<File>();
+	
+	private String terminalCommand;
+	private String terminalArguments;
+	private boolean useBuiltInTerminal;
+	private Set<Long> favoriteIds = new HashSet<Long>();
+	private Set<File> keyfiles= new HashSet<File>();
+	private IconMode iconMode = IconMode.AUTO;
 	
 	Settings() {
 		terminalCommand = "";
@@ -66,7 +71,7 @@ public class Settings {
 			terminalCommand = properties.getProperty("terminalCommand");
 			terminalArguments = properties.getProperty("terminalArguments");
 			useBuiltInTerminal = Boolean.valueOf(properties.getProperty("useBuiltInTerminal", "true"));
-			useDarkIcon = Boolean.valueOf(properties.getProperty("useDarkIcon", "false"));
+			iconMode = IconMode.valueOf(properties.getProperty("iconMode", IconMode.AUTO.name()));
 
 			if(properties.containsKey("favorites")) {
 				String[] ids = properties.get("favorites").toString().split(",");
@@ -95,7 +100,7 @@ public class Settings {
 		properties.put("terminalArguments", terminalArguments);
 		properties.put("favorites", HypersocketUtils.csv(favoriteIds.toArray()));
 		properties.put("useBuiltInTerminal", String.valueOf(useBuiltInTerminal));
-		properties.put("useDarkIcon", String.valueOf(useDarkIcon));
+		properties.put("iconMode", iconMode.name());
 		
 		StringBuffer buf = new StringBuffer();
 		for(File keyfile : keyfiles) {
@@ -194,12 +199,12 @@ public class Settings {
 		}
 	}
 
-	public void setUseDarkIcon(boolean useDarkIcon) {
-		this.useDarkIcon = useDarkIcon;
+	public void setIconMode(IconMode iconMode) {
+		this.iconMode = iconMode;
 	}
 	
-	public boolean getUseDarkIcon() {
-		return useDarkIcon;
+	public IconMode getIconMode() {
+		return iconMode;
 	}
 	
 	

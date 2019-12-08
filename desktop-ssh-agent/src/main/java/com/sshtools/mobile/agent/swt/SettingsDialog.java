@@ -30,6 +30,7 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
@@ -43,6 +44,7 @@ import com.sshtools.common.logger.Log;
 import com.sshtools.mobile.agent.CommandExecutor;
 import com.sshtools.mobile.agent.MobileAgent;
 import com.sshtools.mobile.agent.Settings;
+import com.sshtools.mobile.agent.Settings.IconMode;
 
 public class SettingsDialog extends Dialog {
 
@@ -53,7 +55,7 @@ public class SettingsDialog extends Dialog {
 	Text terminalCommand;
 	Text terminalArguments; 
 	Button builtInTerminal;
-	Button iconMode;
+	Combo iconMode;
 	Text username;
 	Text deviceName;
 	Text hostname;
@@ -63,15 +65,15 @@ public class SettingsDialog extends Dialog {
 	
 	MobileAgent agent;
 	
-	public SettingsDialog(Shell parent, MobileAgent agent) {
+	public SettingsDialog(Display parent, MobileAgent agent) {
 		this(parent, 0, agent);
 	}
 	
-	public SettingsDialog(Shell parent, int style, MobileAgent agent) {
-		super(new Shell(parent.getDisplay()), SWT.DIALOG_TRIM | style);
+	public SettingsDialog(Display parent, int style, MobileAgent agent) {
+		super(new Shell(parent), SWT.DIALOG_TRIM | style);
         shell = getParent();
         shell.setText("Preferences");
-		shell.setImage(new Image(parent.getDisplay(), Image.class.getResourceAsStream("/new_icon_64x64.png")));
+		shell.setImage(new Image(parent, Image.class.getResourceAsStream(Display.isSystemDarkTheme()  ? "/white_icon_64x64.png" : "/new_icon_64x64.png")));
 		this.agent = agent;
 	}
 
@@ -139,10 +141,11 @@ public class SettingsDialog extends Dialog {
 		
 		try {
 			Settings.getInstance().setUseBuiltInTerminal(builtInTerminal.getSelection());
-			Settings.getInstance().setUseDarkIcon(iconMode.getSelection());
+			Settings.getInstance().setIconMode(IconMode.values()[iconMode.getSelectionIndex()]);
 			Settings.getInstance().setTerminalCommand(terminalCommand.getText());
 			Settings.getInstance().setTerminalArguments(terminalArguments.getText());
 			Settings.getInstance().save();
+			agent.resetIcon();
 		} catch (IOException e) {
 			SWTUtil.showError("Preferences", 
 					String.format("Could not save preferences!\r\n%s",e.getMessage()));
@@ -297,10 +300,12 @@ public class SettingsDialog extends Dialog {
 		    layout.marginBottom = layout.marginTop = layout.marginLeft = layout.marginRight = 8;
 			this.setLayout(layout);
 
+			new Label(this, SWT.NONE).setText("Tray icon mode");
 		    
-			iconMode = new Button(this, SWT.CHECK);
+			iconMode = new Combo(this, SWT.READ_ONLY);
 			iconMode.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-			iconMode.setSelection(Settings.getInstance().getUseDarkIcon());
+			iconMode.setItems("Auto", "Dark", "Light");
+			iconMode.select(Settings.getInstance().getIconMode().ordinal());
 			iconMode.setText("Use a dark icon.");
 
 		  }

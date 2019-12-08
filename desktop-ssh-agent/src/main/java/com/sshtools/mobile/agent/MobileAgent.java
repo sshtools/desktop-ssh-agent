@@ -95,6 +95,7 @@ import com.sshtools.common.ssh.components.SshKeyPair;
 import com.sshtools.common.ssh.components.SshPrivateKey;
 import com.sshtools.common.ssh.components.SshPublicKey;
 import com.sshtools.common.ssh.components.jce.JCEProvider;
+import com.sshtools.mobile.agent.Settings.IconMode;
 import com.sshtools.mobile.agent.swt.ConnectionDialog;
 import com.sshtools.mobile.agent.swt.CustomDialog;
 import com.sshtools.mobile.agent.swt.InputForm;
@@ -113,8 +114,6 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 
 	public final static String WINDOWS_NAMED_PIPE = "mobile-ssh-agent";
 	public final static String SSH_AGENT_PIPE = AbstractNamedPipe.NAMED_PIPE_PREFIX + WINDOWS_NAMED_PIPE;
-	
-	
 	
 	SshAgentServer server;
 	MobileDeviceKeystore keystore;
@@ -141,6 +140,11 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 	Runnable restartCallback;
 	Runnable shutdownCallback;
 	
+	private IconMode iconMode;
+	private TrayItem item;
+	private Thread darkModePoll;
+	private String lastIcon;
+	
 	MobileAgent(Display display, Runnable restartCallback, Runnable shutdownCallback) throws IOException {
 
 		super();
@@ -150,7 +154,7 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 		
 		JCEProvider.enableBouncyCastle(true);
 		
-		shell = new Shell(display);
+		shell = new Shell(display, SWT.NONE);
 		
 		if (StringUtils.isBlank(authorization)) {
 			showFatalError(
@@ -325,11 +329,10 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 
 		SWTUtil.safeAsyncExec(new Runnable() {
 			public void run() {
-				SWTAboutDialog about = new SWTAboutDialog(shell, "Close", "About",
-						new Image(display, MobileAgent.class.getResourceAsStream("/new_icon_64x64.png")),
+				new SWTAboutDialog(display, "Close", "About",
+						new Image(display, MobileAgent.class.getResourceAsStream(Display.isSystemDarkTheme() ? "/white_icon_64x64.png" : "/new_icon_64x64.png")),
 						"Desktop SSH Agent", "Part of the JADAPTIVE Key Server solution.", "\u00a9 2003-2019 JADAPTIVE Limited",
 						"https://www.jadaptive.com");
-				about.open();
 			}
 		});
 
@@ -339,7 +342,7 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 
 		SWTUtil.safeAsyncExec(new Runnable() {
 			public void run() {
-				SettingsDialog settings = new SettingsDialog(shell, MobileAgent.this);
+				SettingsDialog settings = new SettingsDialog(display, MobileAgent.this);
 				settings.open();
 			}
 		});
@@ -393,11 +396,68 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 		
 	}
 	
-	private void setupSWTTray() {
+	public void resetIcon() {
+		IconMode mode = Settings.getInstance().getIconMode();
+		if(mode != this.iconMode) {
+			this.iconMode = mode;
+			if(iconMode == IconMode.AUTO) {
+				darkModePoll = new Thread("DarkModePoll") {
 
-		Image image = new Image(display, Image.class.getResourceAsStream(
-				Settings.getInstance().getUseDarkIcon() 
-				? "/new_icon_64x64.png" : "/white_icon_64x64.png"));
+					public void run() {
+						try {
+							while(darkModePoll != null) {
+								display.asyncExec(() -> {
+									String icon = getIconForMode();
+									if(!icon.equals(lastIcon)) {
+										lastIcon = icon;
+										 item.setImage(new Image(display, Image.class.getResourceAsStream(icon)));
+									}
+								});
+								Thread.sleep(60000);
+							}
+						}
+						catch(Exception e) {
+						}
+					}
+				};
+				darkModePoll.setDaemon(true);
+				darkModePoll.start();
+			}
+			else {
+				if(darkModePoll != null) {
+					Thread t = darkModePoll;
+					darkModePoll = null;
+					t.interrupt();
+				}
+
+				display.asyncExec(() -> {
+					String icon = getIconForMode();
+					if(!icon.equals(lastIcon)) {
+						lastIcon = icon;
+						 item.setImage(new Image(display, Image.class.getResourceAsStream(icon)));
+					}
+				});
+			}
+		}
+	}
+	
+	String getIconForMode() {
+		switch(iconMode) {
+		case DARK:
+			return "/new_icon_64x64.png";
+		case LIGHT:
+			return "/white_icon_64x64.png";
+		default:
+			if(Display.isSystemDarkTheme())
+				return "/white_icon_64x64.png";
+			else
+				return "/new_icon_64x64.png";
+		}
+	}
+	
+	private void setupSWTTray() {
+		resetIcon();
+		Image image = new Image(display, Image.class.getResourceAsStream(lastIcon = getIconForMode()));
 		final Tray tray = display.getSystemTray();
 		if (tray == null) {
 			System.out.println("The system tray is not available");
@@ -405,7 +465,7 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 			if(Log.isInfoEnabled()) {
 				Log.info("Setting up SWT tray");
 			}
-			final TrayItem item = new TrayItem(tray, SWT.NONE);
+			item = new TrayItem(tray, SWT.NONE);
 			
 			ToasterFactory.setSettings(new ToasterSettings().setParent(item).setAppName("Desktop SSH Agent"));
 			item.setToolTipText("The agent is running");
@@ -1445,7 +1505,7 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 		            {
 						SWTUtil.safeAsyncExec(new Runnable() {
 			            		public void run() {
-			            			FileDialog dialog = new FileDialog(shell, SWT.OPEN);
+			            			FileDialog dialog = new FileDialog(keyShell, SWT.OPEN);
 					            	dialog.setFilterExtensions(new String [] {"*"});
 					            	dialog.setFilterPath(getSSHFolder().getAbsolutePath());
 					            	String result = dialog.open();
