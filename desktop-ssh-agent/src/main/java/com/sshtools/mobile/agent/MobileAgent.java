@@ -882,8 +882,8 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 			if(Log.isInfoEnabled()) {
 				Log.info("Killing SWT");
 			}
-			shell.dispose();
-			display.dispose();
+			display.asyncExec(() -> shell.dispose());
+			display.asyncExec(() -> display.dispose());
 		}
 	}
 
