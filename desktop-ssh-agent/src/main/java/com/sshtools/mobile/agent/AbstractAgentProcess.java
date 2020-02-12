@@ -35,7 +35,7 @@ import com.hypersocket.json.JsonStatusException;
 public class AbstractAgentProcess {
 
 	public static File CONF_FOLDER = new File(System.getProperty("agent.configDir",
-			System.getProperty("user.home")), ".mobile-agent");
+			System.getProperty("user.home") + File.separator + ".mobile-agent"));
 	File agentProperties = new File(CONF_FOLDER, "agent.properties");
 	
 	String hostname;

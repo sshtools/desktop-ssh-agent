@@ -31,12 +31,12 @@ public class SSHTOOLSVersion {
 	static String version;
 	
 	public static String getVersion() {
-		return getVersion("mobile-agent");
+		return getVersion("desktop-ssh-agent");
 	}
 	
 	
 	public static String getVersion(String artifactId) {
-		String fakeVersion = System.getProperty("hypersocket.development.version");
+		String fakeVersion = System.getProperty("jadaptive.development.version");
 		if(fakeVersion != null) {
 			return fakeVersion;
 		}
@@ -84,7 +84,7 @@ public class SSHTOOLSVersion {
 	}
 
 	public static String getProductId() {
-		return System.getProperty("hypersocket.id", "hypersocket-one");
+		return System.getProperty("hypersocket.id", "desktop-ssh-agent");
 	} 
 	
 	public static String getBrandId() {

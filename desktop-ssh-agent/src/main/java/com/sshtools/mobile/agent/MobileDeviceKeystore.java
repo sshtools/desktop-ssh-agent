@@ -26,6 +26,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,8 +58,6 @@ import com.sshtools.common.ssh.components.SshPublicKey;
 
 public class MobileDeviceKeystore implements KeyStore {
 
-	
-	
 	JsonClient client;
 	String username;
 	String authorization;
@@ -109,7 +108,8 @@ public class MobileDeviceKeystore implements KeyStore {
 	@Override
 	public Map<SshPublicKey, String> getPublicKeys() {
 		
-		Map<SshPublicKey, String> results = getDeviceKeys();
+		Map<SshPublicKey, String> results = new HashMap<>();
+		results.putAll(getDeviceKeys());
 		results.putAll(localKeystore.getPublicKeys());
 		return results;
 	}
@@ -125,7 +125,11 @@ public class MobileDeviceKeystore implements KeyStore {
 	
 	public Map<SshPublicKey, String> getDeviceKeys() {
 		
-		Map<SshPublicKey, String> results = new HashMap<>();
+		if(StringUtils.isAnyBlank(username, authorization)) {
+			return Collections.emptyMap();
+		}
+		
+ 		Map<SshPublicKey, String> results = new HashMap<>();
 		
 		try(InputStream in = IOUtils.toInputStream(
 				getClient().doPost("/authorizedKeys/" + username, 
@@ -155,6 +159,9 @@ public class MobileDeviceKeystore implements KeyStore {
 
 	public  List<JsonConnection> getConnections() {
 		
+		if(StringUtils.isAnyBlank(username, authorization)) {
+			return Collections.emptyList();
+		}
 		try {
 		
 			JsonConnectionList connections = getClient().doPost(

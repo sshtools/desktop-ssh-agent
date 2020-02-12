@@ -145,6 +145,8 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 	private Thread darkModePoll;
 	private String lastIcon;
 	
+	boolean quiting;
+	
 	MobileAgent(Display display, Runnable restartCallback, Runnable shutdownCallback) throws IOException {
 
 		super();
@@ -156,14 +158,14 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 		
 		shell = new Shell(display, SWT.NONE);
 		
-		if (StringUtils.isBlank(authorization)) {
-			showFatalError(
-					"This device has not been authorized to access your account on the gateway!\r\n\r\nPlease execute the authorize command before relaunching this process");
-		}
-
-		if (StringUtils.isAnyBlank(username, deviceName, hostname)) {
-			showFatalError("Your agent.properties file appears to be missing a username, deviceName or hostname");
-		}
+//		if (StringUtils.isBlank(authorization)) {
+//			showFatalError(
+//					"This device has not been authorized to access your account on the gateway!\r\n\r\nPlease execute the authorize command before relaunching this process");
+//		}
+//
+//		if (StringUtils.isAnyBlank(username, deviceName, hostname)) {
+//			showFatalError("Your agent.properties file appears to be missing a username, deviceName or hostname");
+//		}
 
 		try {
 			
@@ -300,8 +302,6 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 				}
 			}
 			
-			display.dispose();
-			
 		} finally {
 			quit(false);
 		}
@@ -309,6 +309,10 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 
 	private void showFatalError(String message) {
 
+		if(quiting) {
+			return;
+		}
+		
 		if (message == null) {
 			message = "No error message provided. Please contact support@jadaptive.com";
 		}
@@ -331,7 +335,7 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 			public void run() {
 				new SWTAboutDialog(display, "Close", "About",
 						new Image(display, MobileAgent.class.getResourceAsStream(Display.isSystemDarkTheme() ? "/white_icon_64x64.png" : "/new_icon_64x64.png")),
-						"Desktop SSH Agent", "Part of the JADAPTIVE Key Server solution.", "\u00a9 2003-2019 JADAPTIVE Limited",
+						"Desktop SSH Agent", "Part of the JADAPTIVE Key Server solution.", "\u00a9 2003-2020 JADAPTIVE Limited",
 						"https://www.jadaptive.com");
 			}
 		});
@@ -816,6 +820,8 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 	}
 
 	public void quit(boolean killSWT) {
+		
+		this.quiting = true;
 		
 		if(Log.isInfoEnabled()) {
 			Log.info("Quitting (%b)", killSWT);
@@ -1506,7 +1512,7 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 						SWTUtil.safeAsyncExec(new Runnable() {
 			            		public void run() {
 			            			FileDialog dialog = new FileDialog(keyShell, SWT.OPEN);
-					            	dialog.setFilterExtensions(new String [] {"*"});
+					            	dialog.setFilterExtensions(null);
 					            	dialog.setFilterPath(getSSHFolder().getAbsolutePath());
 					            	String result = dialog.open();
 					            	
@@ -2182,18 +2188,6 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 			aliases.add(addr.getCanonicalHostName());
 		} catch(UnknownHostException e) { }
 		
-//		if(Objects.nonNull(update)) {
-//			knownHosts.removeEntries(aliases.toArray(new String[0]));;
-//		}
-//		
-//		Set<SshPublicKey> hostKeys = new HashSet<SshPublicKey>();
-//		hostKeys.addAll(SshKeyUtils.getSupportedHostKeys(hostname, port));
-//		for(SshPublicKey key : hostKeys) {
-//			knownHosts.addEntry(key, "", aliases.toArray(new String[0]));
-//		}
-
-//		saveKnownHosts();
-		
 		JsonConnection con;
 		
 		if(Objects.isNull(update)) {
@@ -2208,11 +2202,6 @@ public class MobileAgent extends AbstractAgentProcess implements MobileDeviceKey
 			public void run() {
 				synchronized(connections) {
 					connections.put(con.getId(), con);
-//					Map<SshPublicKey,String> keys = keystore.getPublicKeys();
-//					if(!keys.isEmpty()) {
-//						new TerminalDisplay().runTerminal(String.format("Configure %s@%s:%d", username, hostname, port), 
-//								new PublicKeyConfiguringConnector(MobileAgent.this, hostname, port, username,keys));
-//					}
 					displayConnections();
 				}
 			}

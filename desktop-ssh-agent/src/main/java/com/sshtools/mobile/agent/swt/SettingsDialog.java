@@ -20,6 +20,7 @@ package com.sshtools.mobile.agent.swt;
 
 import java.io.IOException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -164,21 +165,21 @@ public class SettingsDialog extends Dialog {
 		    
 		    username = new Text(this, SWT.SINGLE | SWT.BORDER);
 		    username.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		    username.setText(agent.getUsername());
+		    username.setText(StringUtils.defaultString(agent.getUsername()));
 		    username.setEnabled(false);
 		    
 		    new Label(this, SWT.NONE).setText("Device Name");
 		    
 		    deviceName = new Text(this, SWT.SINGLE | SWT.BORDER);
 		    deviceName.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		    deviceName.setText(agent.getDeviceName());
+		    deviceName.setText(StringUtils.defaultString(agent.getDeviceName()));
 		    deviceName.setEnabled(false);
 		    
 		    new Label(this, SWT.NONE).setText("Gateway Hostname");
 		    
 		    hostname = new Text(this, SWT.SINGLE | SWT.BORDER);
 		    hostname.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		    hostname.setText(agent.getHostname());
+		    hostname.setText(StringUtils.defaultString(agent.getHostname()));
 		    hostname.setEnabled(false);
 		    
 		    new Label(this, SWT.NONE).setText("Gateway Port");

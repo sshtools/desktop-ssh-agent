@@ -111,6 +111,7 @@ public class Settings {
 		}
 		properties.put("loadFiles", buf.toString());
 		
+		SETTINGS_FILE.getParentFile().mkdirs();
 		try(FileOutputStream out = new FileOutputStream(SETTINGS_FILE)) {
 			properties.store(out, "Mobile Agent Preferences");
 		}
