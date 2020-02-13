@@ -45,7 +45,8 @@ public class AbstractAgentProcess {
 	String authorization;
 	String deviceName;
 	String password;
-	
+	String privateKey;
+	String publicKey;
 	
 	AbstractAgentProcess() throws IOException {
 		
@@ -57,6 +58,8 @@ public class AbstractAgentProcess {
 		username = properties.getProperty("username");
 		authorization = properties.getProperty("authorization");
 		deviceName = properties.getProperty("deviceName");
+		privateKey = properties.getProperty("privateKey");
+		publicKey = properties.getProperty("publicKey");
 		
 	}
 	

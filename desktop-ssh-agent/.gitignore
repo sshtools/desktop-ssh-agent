@@ -1,3 +1,4 @@
 /target/
 *.classpath
 /agent.log
+/agent.properties

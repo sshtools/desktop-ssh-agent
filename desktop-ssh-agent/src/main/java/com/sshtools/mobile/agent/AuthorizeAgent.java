@@ -18,26 +18,29 @@
  */
 package com.sshtools.mobile.agent;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
+import java.util.Base64;
 
-import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.hypersocket.json.JsonClient;
 import com.hypersocket.json.JsonResponse;
+import com.hypersocket.json.JsonStatusException;
 import com.hypersocket.json.RequestParameter;
 import com.hypersocket.json.utils.HypersocketUtils;
 import com.sshtools.common.logger.Log;
-import com.sshtools.common.publickey.RsaUtils;
 import com.sshtools.common.publickey.SshKeyPairGenerator;
 import com.sshtools.common.publickey.SshKeyUtils;
+import com.sshtools.common.ssh.SshException;
 import com.sshtools.common.ssh.components.SshKeyPair;
-import com.sshtools.common.ssh.components.SshRsaPrivateKey;
+import com.sshtools.common.ssh.components.SshPublicKey;
 
 public class AuthorizeAgent extends AbstractAgentProcess {
 
-	
 	
 	boolean silent = false;
 	boolean forceOverwrite = false;
@@ -93,12 +96,12 @@ public class AuthorizeAgent extends AbstractAgentProcess {
 		System.out.println(String.format("Authorizing the device %s", deviceName));
 		
 		try {
-			
-			
-			SshKeyPair pair = SshKeyPairGenerator.generateKeyPair(SshKeyPairGenerator.SSH2_RSA, 2048);			
-			
-			String token = deviceName + "|" + hostname + "|" + port + "|" + username + "|" + RandomUtils.nextLong();
-			token = RsaUtils.encrypt((SshRsaPrivateKey)pair.getPrivateKey(), token);
+
+			SshKeyPair pair = SshKeyPairGenerator.generateKeyPair(SshKeyPairGenerator.ECDSA, 521);			
+			String key = SshKeyUtils.getFormattedKey(pair.getPublicKey(), "Desktop SSH Agent");
+			byte[] newToken = pair.getPrivateKey().sign(generateToken(deviceName, username, 
+					key, 
+					StringUtils.defaultString(authorization)));
 			
 			JsonClient client = logonClient();
 			
@@ -134,28 +137,33 @@ public class AuthorizeAgent extends AbstractAgentProcess {
 					} while(true);
 				}
 
-//				System.out.println("An authentication request has been sent to your mobile device. Please authorize it to continue.");
-				
 				response = client.doPost("api/agent/authorize", JsonResponse.class,
 						new RequestParameter("previousToken", StringUtils.defaultString(authorization)),
-						new RequestParameter("token", token),
+						new RequestParameter("token", Base64.getUrlEncoder().encodeToString(newToken)),
+						new RequestParameter("version", "1"),
+						new RequestParameter("deviceName", deviceName),
 						new RequestParameter("username", username),
 						new RequestParameter("overwrite", String.valueOf(overwrite)),
-						new RequestParameter("key", SshKeyUtils.getFormattedKey(pair.getPublicKey(), "Mobile SSH Agent Device")));
+						new RequestParameter("key", key));
 	
 				if(!response.isSuccess()) {
 					throw new IOException(response.getMessage());
 				}
 				
-				token = response.getMessage();
+				String previousToken = authorization;
+				authorization = response.getMessage();
 								
+				validateAuthorization(client, username, key, previousToken, deviceName, authorization);
+				
 				saveProperty("username", username);
 				saveProperty("hostname", hostname);
 				saveProperty("port", String.valueOf(port));
 				saveProperty("strictSSL", String.valueOf(strictSSL));
-				saveProperty("authorization", token);
+				saveProperty("authorization", authorization);
 				saveProperty("deviceName", deviceName);
-			
+				saveProperty("privateKey", SshKeyUtils.getFormattedKey(pair, ""));
+				saveProperty("publicKey", key);
+				
 				System.out.println("Device has been authorized");
 				
 			} finally {
@@ -171,6 +179,43 @@ public class AuthorizeAgent extends AbstractAgentProcess {
 		}
 		
 		
+	}
+	
+	private void validateAuthorization(JsonClient client, String username, String key, String previousToken, String deviceName, String authorization) throws IOException, JsonStatusException, SshException {
+	
+		String authorizedKeys = client.doGet("api/agent/authorizedKeys/" + username);
+		
+		byte[] data = generateToken(deviceName, username, key, previousToken);
+
+		BufferedReader reader = new BufferedReader(new StringReader(authorizedKeys));
+		String publicKey;
+		while((publicKey = reader.readLine()) != null) {
+			
+			SshPublicKey k = SshKeyUtils.getPublicKey(publicKey);
+			
+			if(!k.verifySignature(Base64.getUrlDecoder().decode(authorization), data)) {
+				continue;
+			}
+			
+			return;
+		}
+		
+		throw new IOException("Invalid signature in authorization response");
+		
+	}
+
+	private byte[] generateToken(String deviceName, String principalName, String key, String previousToken) throws UnsupportedEncodingException {
+		
+		StringBuffer buffer = new StringBuffer();
+		buffer.append(deviceName);
+		buffer.append("|");
+		buffer.append(principalName);
+		buffer.append("|");
+		buffer.append(key);
+		buffer.append("|");
+		buffer.append(StringUtils.defaultString(previousToken, ""));
+		
+		return buffer.toString().getBytes("UTF-8");
 	}
 	
 	public static void main(String[] args) throws IOException {
