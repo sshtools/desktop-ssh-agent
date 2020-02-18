@@ -2219,4 +2219,8 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 	public String getSocketPath() {
 		return agentSocketPath.toString();
 	}
+
+	public String getAuthorizationToken() {
+		return authorization;
+	}
 }

@@ -160,40 +160,47 @@ public class SettingsDialog extends Dialog {
 		    layout.marginBottom = layout.marginTop = layout.marginLeft = layout.marginRight = 8;
 			this.setLayout(layout);
 			
+			boolean authorized = !StringUtils.isBlank(agent.getAuthorizationToken());
+			
 			new Label(this, SWT.NONE).setText("Username");
 		    
 		    username = new Text(this, SWT.SINGLE | SWT.BORDER);
 		    username.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		    username.setText(StringUtils.defaultString(agent.getUsername()));
+		    username.setEnabled(!authorized);
 		    
 		    new Label(this, SWT.NONE).setText("Device Name");
 		    
 		    deviceName = new Text(this, SWT.SINGLE | SWT.BORDER);
 		    deviceName.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		    deviceName.setText(StringUtils.defaultString(agent.getDeviceName()));
+		    deviceName.setEnabled(!authorized);
 		    
 		    new Label(this, SWT.NONE).setText("Gateway Hostname");
 		    
 		    hostname = new Text(this, SWT.SINGLE | SWT.BORDER);
 		    hostname.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		    hostname.setText(StringUtils.defaultString(agent.getHostname()));
+		    hostname.setEnabled(!authorized);
 		    
 		    new Label(this, SWT.NONE).setText("Gateway Port");
 		    
 		    port = new Text(this, SWT.SINGLE | SWT.BORDER);
 		    port.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		    port.setText(String.valueOf(agent.getPort()));
+		    port.setEnabled(!authorized);
 		    new Label(this, SWT.NONE);
 		    
 		    strictSSL = new Button(this, SWT.CHECK);
 		    strictSSL.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		    strictSSL.setSelection(!agent.isStrictSSL());
 		    strictSSL.setText("Allow self-signed certificates and invalid hostnames.");
+		    strictSSL.setEnabled(!authorized);
 		    new Label(this, SWT.NONE);
 		    
 		    authorize = new Button(this, SWT.PUSH);
 		    authorize.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_BEGINNING));
-		    authorize.setText("Reauthorize");
+		    authorize.setText(!authorized ? "Authorize" : "Reauthorize");
 		    
 		    authorize.addSelectionListener(new SelectionAdapter() {
 				
