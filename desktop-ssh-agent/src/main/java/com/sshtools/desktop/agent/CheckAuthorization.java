@@ -56,7 +56,8 @@ public class CheckAuthorization extends AbstractAgentProcess {
 
 			SshKeyPair pair = SshKeyUtils.getPrivateKey(privateKey, "");			
 			
-			JsonClient client = new JsonClient(hostname, port, !strictSSL);
+			JsonClient client = new JsonClient(hostname, port, !strictSSL, false);
+			client.setPath("/app");
 			
 			try {
 				
@@ -95,8 +96,7 @@ public class CheckAuthorization extends AbstractAgentProcess {
 		
 	}
 	
-	@SuppressWarnings("unused")
-	private void validateAuthorization(JsonClient client, String username, String key, String previousToken, String deviceName, String authorization) throws IOException, JsonStatusException, SshException {
+	public static void validateAuthorization(JsonClient client, String username, String key, String previousToken, String deviceName, String authorization) throws IOException, JsonStatusException, SshException {
 	
 		String authorizedKeys = client.doGet("api/agent/authorizedKeys/" + username);
 		
@@ -119,7 +119,7 @@ public class CheckAuthorization extends AbstractAgentProcess {
 		
 	}
 
-	private byte[] generateToken(String deviceName, String principalName, String key, String previousToken) throws UnsupportedEncodingException {
+	public static byte[] generateToken(String deviceName, String principalName, String key, String previousToken) throws UnsupportedEncodingException {
 		
 		StringBuffer buffer = new StringBuffer();
 		buffer.append(deviceName);
@@ -133,7 +133,7 @@ public class CheckAuthorization extends AbstractAgentProcess {
 		return buffer.toString().getBytes("UTF-8");
 	}
 	
-	private byte[] generateAuthorization(int version, long timestamp, String token, String principal) throws IOException {
+	public static byte[] generateAuthorization(int version, long timestamp, String token, String principal) throws IOException {
 		
 		StringBuffer buffer = new StringBuffer();
 		buffer.append(version);

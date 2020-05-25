@@ -18,21 +18,35 @@
  */
 package com.sshtools.desktop.agent;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
-import com.sshtools.agent.InMemoryKeyStore;
-import com.sshtools.common.publickey.SshKeyUtils;
-import com.sshtools.common.ssh.components.SshPublicKey;
+import com.hypersocket.json.JsonClient;
+import com.hypersocket.json.JsonStatusException;
+import com.sshtools.common.util.IOUtils;
 
 public class AuthorizedKeys extends AbstractAgentProcess {
 
 	AuthorizedKeys() throws IOException {
 		super();
 		
-		MobileDeviceKeystore store=  new  MobileDeviceKeystore(hostname, port, strictSSL, username, deviceName, authorization, new InMemoryKeyStore());
-		for(SshPublicKey key : store.getPublicKeys().keySet()) {
-			System.out.println(SshKeyUtils.getFormattedKey(key, ""));
-		}
+		JsonClient client = new JsonClient(hostname, port, !isStrictSSL(), false);
+		client.setPath("/app");
+		
+		try(InputStream in = IOUtils.toInputStream(
+				client.doGet("/authorizedKeys/" + username), "UTF-8")) {
+			
+			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+			String key;
+			while((key = reader.readLine())!=null) {
+				System.out.println(key);
+			}
+			
+		} catch (JsonStatusException e) {
+			System.err.println("ERROR: " + e.getMessage());
+		} 
 	}
 
 	public static void main(String[] args) throws IOException {

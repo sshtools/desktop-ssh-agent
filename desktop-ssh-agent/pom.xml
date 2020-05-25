@@ -158,7 +158,7 @@
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>hypersocket-json-client</artifactId>
-			<version>1.0.8-SNAPSHOT</version>
+			<version>1.0.11</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -184,6 +184,11 @@
 			<groupId>com.sshtools</groupId>
 			<artifactId>terminal-swt</artifactId>
 			<version>3.0.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sshtools</groupId>
+			<artifactId>universal-authenticator-api</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>

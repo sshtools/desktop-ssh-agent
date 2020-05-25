@@ -43,15 +43,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hypersocket.json.JsonClient;
 import com.hypersocket.json.JsonPrivateKey;
 import com.hypersocket.json.JsonPrivateKeyList;
-import com.hypersocket.json.JsonRequestStatus;
 import com.hypersocket.json.JsonResourceStatus;
+import com.hypersocket.json.JsonResponse;
 import com.hypersocket.json.JsonStatusException;
 import com.hypersocket.json.RequestParameter;
+import com.hypersocket.json.utils.HypersocketUtils;
 import com.sshtools.agent.ForwardingNotice;
 import com.sshtools.agent.KeyConstraints;
 import com.sshtools.agent.KeyStore;
 import com.sshtools.agent.exceptions.KeyTimeoutException;
 import com.sshtools.common.logger.Log;
+import com.sshtools.common.publickey.InvalidPassphraseException;
 import com.sshtools.common.publickey.SshKeyUtils;
 import com.sshtools.common.publickey.SshPublicKeyFile;
 import com.sshtools.common.publickey.SshPublicKeyFileFactory;
@@ -64,26 +66,15 @@ import com.sshtools.common.util.IOUtils;
 public class MobileDeviceKeystore implements KeyStore {
 
 	JsonClient client;
-	String username;
-	String authorization;
-	String remoteName;
-	String hostname;
-	int port;
-	boolean strictSSL;
-	
+	DesktopAgent agent;
 	MobileDeviceKeystoreListener listener;
 	KeyStore localKeystore;
 	
 	Set<JsonConnection> localConnections;
 	
-	public MobileDeviceKeystore(String hostname, int port, boolean strictSSL, String username, String remoteName, String authorization,
+	public MobileDeviceKeystore(DesktopAgent agent,
 			KeyStore localKeystore) throws IOException {
-		this.username = username;
-		this.authorization = authorization;
-		this.remoteName = remoteName;
-		this.hostname = hostname;
-		this.port = port;
-		this.strictSSL = strictSSL;
+		this.agent = agent;
 		this.localKeystore = localKeystore;
 		
 		loadCachedConnections();
@@ -125,20 +116,44 @@ public class MobileDeviceKeystore implements KeyStore {
 		
 		try {
 			verifyClient();
-			JsonRequestStatus status = client.doPost(
-					"api/agent/check", 
-					JsonRequestStatus.class, 
-					new RequestParameter("username", username),
-					new RequestParameter("token", authorization));
-			return status.isSuccess();
+			
+			JsonResponse response = client.doPost("api/agent/check",
+					JsonResponse.class, 
+					generateAuthorizationParameters());
+					
+			return response.isSuccess();
 		} catch (Throwable e) {
 			return false;
 		}
 	}
 	
+	private RequestParameter[] generateAuthorizationParameters(RequestParameter...parameters) throws IOException {
+		List<RequestParameter> params = new ArrayList<RequestParameter>(Arrays.asList(parameters));
+		
+		try {
+			SshKeyPair pair = SshKeyUtils.getPrivateKey(agent.getPrivateKey(), "");	
+			long timestamp = System.currentTimeMillis();
+	
+			byte[] auth = CheckAuthorization.generateAuthorization(1, timestamp, 
+					agent.getAuthorizationToken(), agent.getUsername());
+			String signature = Base64.getUrlEncoder().encodeToString(pair.getPrivateKey().sign(auth));
+			
+			params.add(new RequestParameter("version", "1"));
+			params.add(new RequestParameter("timestamp", String.valueOf(timestamp)));
+			params.add(new RequestParameter("signature", signature));
+			params.add(new RequestParameter("username", agent.getUsername()));
+			params.add(new RequestParameter("token", HypersocketUtils.checkNull(agent.getAuthorizationToken())));
+	
+			return params.toArray(new RequestParameter[0]);
+		} catch(InvalidPassphraseException e) {
+			throw new IOException(e.getMessage(), e);
+		}
+	}
+	
 	private void verifyClient() throws IOException {
 		if(Objects.isNull(client)) {
-			this.client = new JsonClient(hostname, port, !strictSSL);
+			this.client = new JsonClient(agent.getHostname(), agent.getPort(), !agent.isStrictSSL(), false);
+			this.client.setPath("/app");
 		}
 	}
 	
@@ -164,15 +179,14 @@ public class MobileDeviceKeystore implements KeyStore {
 	
 	public Map<SshPublicKey, String> getDeviceKeys() {
 		
-		if(StringUtils.isAnyBlank(username, authorization)) {
+		if(StringUtils.isAnyBlank(agent.getUsername(), agent.getAuthorizationToken())) {
 			return Collections.emptyMap();
 		}
 		
  		Map<SshPublicKey, String> results = new HashMap<>();
 		
 		try(InputStream in = IOUtils.toInputStream(
-				getClient().doPost("/authorizedKeys/" + username, 
-						new RequestParameter("token", authorization)), "UTF-8")) {
+				getClient().doGet("/authorizedKeys/" + agent.getUsername()), "UTF-8")) {
 			
 			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 			String key;
@@ -207,8 +221,7 @@ public class MobileDeviceKeystore implements KeyStore {
 			JsonConnectionList connections = getClient().doPost(
 					"api/serverConnections/myServerConnections", 
 						JsonConnectionList.class,
-						new RequestParameter("username", username),
-						new RequestParameter("token", authorization));
+						generateAuthorizationParameters());
 			
 			if(!connections.isSuccess()) {
 				throw new IllegalStateException(connections.getError());
@@ -366,13 +379,12 @@ public class MobileDeviceKeystore implements KeyStore {
 		
 		try {
 			JsonSignRequestStatus request = getClient().doPost("api/agent/signPayload", JsonSignRequestStatus.class,
-					new RequestParameter("username", username),
-					new RequestParameter("token", authorization),
-					new RequestParameter("flags", String.valueOf(flags)),
-					new RequestParameter("fingerprint", pubkey.getFingerprint()),
-					new RequestParameter("remoteName", remoteName),
-					new RequestParameter("payload", payload));
-			
+					generateAuthorizationParameters(
+						new RequestParameter("flags", String.valueOf(flags)),
+						new RequestParameter("fingerprint", pubkey.getFingerprint()),
+						new RequestParameter("remoteName", agent.getDeviceName()),
+						new RequestParameter("payload", payload)));
+				
 			if(Log.isInfoEnabled()) {
 				Log.info("Received response from %s", pubkey.getFingerprint());
 			}
@@ -435,7 +447,7 @@ public class MobileDeviceKeystore implements KeyStore {
 	    	IOException lastError = null;
 	    	while(maxAttempts > 0) {
 	    		try {
-					client.logon(username, prompt.getPassword(username));
+					client.logon(agent.getUsername(), prompt.getPassword(agent.getUsername()));
 					return client;
 				} catch (IOException e) {
 					lastError = e;
@@ -467,55 +479,43 @@ public class MobileDeviceKeystore implements KeyStore {
 		
 		verifyClient();
 		
-		IOException lastError = null;
-		
-		if(!client.isLoggedOn()) {
-	    	
-	    	while(maxAttempts > 0) {
-	    		try {
-					client.logon(username, prompt.getPassword(username));
-					break;
-				} catch (IOException e) {
-					lastError = e;
-				}
-	    		}
+		JsonPrivateKeyList results = client.doPost("api/userPrivateKeys/personal", 
+				JsonPrivateKeyList.class,
+				generateAuthorizationParameters());
+
+        if(!results.isSuccess()) {
+            throw new IOException(results.getError());
+        }
+        
+        Map<SshPublicKey, Long> ids = new HashMap<SshPublicKey, Long>();
+        
+		for(SshPublicKey key : keys) {
+			for(JsonPrivateKey jsonKey : results.getResources()) {
+    			if(jsonKey.getFingerprint().equals(SshKeyUtils.getFingerprint(key))) {
+    				ids.put(key, jsonKey.getId());
+    				break;
+    			}
+			}
 		}
-	    	
-	    	if(client.isLoggedOn()) {
-	    		JsonPrivateKeyList results = client.doGet("api/userPrivateKeys/personal", JsonPrivateKeyList.class);
-	
-	        if(!results.isSuccess()) {
-	            throw new IOException(results.getError());
+        
+		for(Map.Entry<SshPublicKey,Long> entry : ids.entrySet()) {
+			try {
+    			client.doDelete("api/userPrivateKeys/key/" + entry.getValue().toString() + "?fromDevice=false", 
+    					JsonResourceStatus.class,
+    					generateAuthorizationParameters());
+	        } catch(JsonStatusException e) {
+	            if(e.getStatusCode()==404) {
+	                continue;
+	            }
+	            throw e;
 	        }
+    		
+		}
+        
+        if(listener!=null) {
+        		listener.onKeysChanged();
+        }
 	        
-	        Map<SshPublicKey, Long> ids = new HashMap<SshPublicKey, Long>();
-	        
-        		for(SshPublicKey key : keys) {
-        			for(JsonPrivateKey jsonKey : results.getResources()) {
-	        			if(jsonKey.getFingerprint().equals(SshKeyUtils.getFingerprint(key))) {
-	        				ids.put(key, jsonKey.getId());
-	        				break;
-	        			}
-        			}
-        		}
-	        
-        		for(Map.Entry<SshPublicKey,Long> entry : ids.entrySet()) {
-        			try {
-            			client.doDelete("api/userPrivateKeys/key/" + entry.getValue().toString() + "?fromDevice=false", JsonResourceStatus.class);
-                } catch(JsonStatusException e) {
-                    if(e.getStatusCode()==404) {
-                        continue;
-                    }
-                    throw e;
-                }
-        		}
-	        
-	        if(listener!=null) {
-	        		listener.onKeysChanged();
-	        }
-	    	} else {
-	    		throw lastError;
-	    	}
 	}
 
 	public boolean isDeviceKey(SshPublicKey key) {
@@ -563,14 +563,13 @@ public class MobileDeviceKeystore implements KeyStore {
 			JsonConnectionResourceStatus result = getClient().doPost(
 					"api/serverConnections/create", 
 					JsonConnectionResourceStatus.class,
+					generateAuthorizationParameters(
 						new RequestParameter("name", name),
 						new RequestParameter("hostname", hostname),
 						new RequestParameter("port", String.valueOf(port)),
 						new RequestParameter("remoteUsername", remoteUsername),
-						new RequestParameter("username", username),
 						new RequestParameter("aliases", StringUtils.join(aliases, ",")),
-						new RequestParameter("hostKeys", StringUtils.join(keys, ",")),
-						new RequestParameter("token", authorization));
+						new RequestParameter("hostKeys", StringUtils.join(keys, ","))));
 			
 			if(!result.isSuccess()) {
 				throw new IllegalStateException(result.getMessage());
@@ -605,8 +604,7 @@ public class MobileDeviceKeystore implements KeyStore {
 							
 				try {
 					client.doDelete("api/serverConnections/delete/" + con.getId(), JsonResourceStatus.class,
-							new RequestParameter("username", username),
-							new RequestParameter("token", authorization));
+							generateAuthorizationParameters());
 				} catch(JsonStatusException e) {
 			        throw new IOException(e.getMessage(), e);
 				}
@@ -658,16 +656,15 @@ public class MobileDeviceKeystore implements KeyStore {
 			JsonConnectionResourceStatus result = getClient().doPost(
 					Objects.nonNull(con) ? "api/serverConnections/update" : "api/serverConnections/create", 
 					JsonConnectionResourceStatus.class,
+					generateAuthorizationParameters(
 					    new RequestParameter("id", con.getId().toString()),
 						new RequestParameter("name", name),
 						new RequestParameter("hostname", hostname),
 						new RequestParameter("port", String.valueOf(port)),
 						new RequestParameter("remoteUsername", remoteUsername),
-						new RequestParameter("username", username),
 						new RequestParameter("aliases", StringUtils.join(aliases, ",")),
-						new RequestParameter("hostKeys", StringUtils.join(keys, ",")),
-						new RequestParameter("token", authorization));
-			
+						new RequestParameter("hostKeys", StringUtils.join(keys, ","))));
+					
 			if(!result.isSuccess()) {
 				throw new IllegalStateException(result.getError());
 			}

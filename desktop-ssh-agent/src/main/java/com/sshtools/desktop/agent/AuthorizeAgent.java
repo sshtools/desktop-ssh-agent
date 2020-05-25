@@ -119,7 +119,8 @@ public class AuthorizeAgent extends AbstractAgentProcess {
 					key, 
 					StringUtils.defaultString(authorization)));
 			
-			JsonClient client = new JsonClient(hostname, port, !strictSSL);
+			JsonClient client = new JsonClient(hostname, port, !strictSSL, false);
+			client.setPath("/app");
 			
 			try {
 				

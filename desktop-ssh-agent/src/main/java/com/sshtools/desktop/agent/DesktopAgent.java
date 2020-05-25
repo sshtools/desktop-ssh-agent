@@ -163,7 +163,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			
 			Settings.getInstance().load();
 			
-			keystore = new MobileDeviceKeystore(hostname, port, strictSSL, username, deviceName, authorization, localKeys);
+			keystore = new MobileDeviceKeystore(this, localKeys);
 			keystore.setListener(this);
 			
 			if (SystemUtils.IS_OS_WINDOWS) {
@@ -2222,5 +2222,9 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 
 	public String getAuthorizationToken() {
 		return authorization;
+	}
+
+	public String getPrivateKey() {
+		return privateKey;
 	}
 }

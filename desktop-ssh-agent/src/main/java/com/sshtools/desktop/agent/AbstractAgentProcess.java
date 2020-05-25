@@ -164,12 +164,15 @@ public class AbstractAgentProcess {
 	}
 	
 	protected JsonClient createClient() throws IOException {
-		return new JsonClient(hostname, port, !strictSSL);
+		JsonClient client = new JsonClient(hostname, port, !strictSSL, false);
+		client.setPath("/app");
+		return client;
 	}
 	
 	protected JsonClient logonClient() throws IOException {
 		
-		JsonClient client = new JsonClient(hostname, port, !strictSSL);
+		JsonClient client = new JsonClient(hostname, port, !strictSSL, false);
+		client.setPath("/app");
 		
 		boolean promptForPassword = StringUtils.isBlank(password);
 		for(int i=0;i<3;i++ ) {
