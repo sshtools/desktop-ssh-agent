@@ -124,13 +124,9 @@
 							<goal>sign</goal>
 						</goals>
 						<configuration>
-			                <gpgArguments>
-			                    <arg>--pinentry-mode</arg>
-			                    <arg>loopback</arg>
-			                </gpgArguments>
-			            </configuration>
+							<keyname>lee@sshtools.com</keyname>
+						</configuration>
 					</execution>
-					
 				</executions>
 			</plugin>
 			<plugin>
