@@ -52,17 +52,17 @@ public class AbstractAgentProcess {
 			System.getProperty("user.home") + File.separator + ".mobile-agent"));
 	File agentProperties = new File(CONF_FOLDER, "agent.properties");
 	
-	String hostname;
-	int port;
-	boolean strictSSL;
-	String username;
-	String authorization;
-	String deviceName;
-	String password;
-	String privateKey;
-	String publicKey;
+	protected String hostname;
+	protected int port;
+	protected boolean strictSSL;
+	protected String username;
+	protected String authorization;
+	protected String deviceName;
+	protected String password;
+	protected String privateKey;
+	protected String publicKey;
 	
-	AbstractAgentProcess() throws IOException {
+	protected AbstractAgentProcess() throws IOException {
 		
 		Properties properties = loadProperties();
 		
