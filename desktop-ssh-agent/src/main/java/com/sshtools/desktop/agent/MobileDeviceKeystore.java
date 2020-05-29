@@ -212,41 +212,41 @@ public class MobileDeviceKeystore implements KeyStore {
 
 	public  List<JsonConnection> getConnections() {
 		
-		if(!ping()) {
-			return new ArrayList<>(localConnections);
-		}
+//		if(!ping()) {
+//			return new ArrayList<>(localConnections);
+//		}
 		
-		try {
+//		try {
 		
-			JsonConnectionList connections = getClient().doPost(
-					"api/serverConnections/myServerConnections", 
-						JsonConnectionList.class,
-						generateAuthorizationParameters());
-			
-			if(!connections.isSuccess()) {
-				throw new IllegalStateException(connections.getError());
-			}
-			
-			List<JsonConnection> cons = new ArrayList<JsonConnection>();
-			cons.addAll(Arrays.asList(connections.getResources()));
-			
-			for(JsonConnection c : cons) {
-				c.setRemote(true);
-				localConnections.add(c);
-			}
+//			JsonConnectionList connections = getClient().doPost(
+//					"api/serverConnections/myServerConnections", 
+//						JsonConnectionList.class,
+//						generateAuthorizationParameters());
+//			
+//			if(!connections.isSuccess()) {
+//				throw new IllegalStateException(connections.getError());
+//			}
+//			
+//			List<JsonConnection> cons = new ArrayList<JsonConnection>();
+//			cons.addAll(Arrays.asList(connections.getResources()));
+//			
+//			for(JsonConnection c : cons) {
+//				c.setRemote(true);
+//				localConnections.add(c);
+//			}
 			
 			return new ArrayList<>(localConnections);
 			
-		} catch(JsonStatusException e) { 
-			if(e.getStatusCode()==403) {
-				throw new IllegalStateException("This device has not been authorized to access the users account.");
-			} else {
-				throw new IllegalStateException(e.getMessage(), e);
-			}
-		} catch(IOException e ) {
-			Log.error("Failed to list connections", e);
-			throw new IllegalStateException(e.getMessage(), e);
-		} 
+//		} catch(JsonStatusException e) { 
+//			if(e.getStatusCode()==403) {
+//				throw new IllegalStateException("This device has not been authorized to access the users account.");
+//			} else {
+//				throw new IllegalStateException(e.getMessage(), e);
+//			}
+//		} catch(IOException e ) {
+//			Log.error("Failed to list connections", e);
+//			throw new IllegalStateException(e.getMessage(), e);
+//		} 
 	}
 	
 	@Override
@@ -544,7 +544,7 @@ public class MobileDeviceKeystore implements KeyStore {
 				keys.add(SshKeyUtils.getOpenSSHFormattedKey(key));
 			}
 			
-			if(!ping()) {
+//			if(!ping()) {
 				
 				JsonConnection con = new JsonConnection();
 				con.setName(name);
@@ -557,36 +557,36 @@ public class MobileDeviceKeystore implements KeyStore {
 				localConnections.add(con);
 				saveCachedConnections();
 				return con;
-			}
+//			}
 
 			
-			JsonConnectionResourceStatus result = getClient().doPost(
-					"api/serverConnections/create", 
-					JsonConnectionResourceStatus.class,
-					generateAuthorizationParameters(
-						new RequestParameter("name", name),
-						new RequestParameter("hostname", hostname),
-						new RequestParameter("port", String.valueOf(port)),
-						new RequestParameter("remoteUsername", remoteUsername),
-						new RequestParameter("aliases", StringUtils.join(aliases, ",")),
-						new RequestParameter("hostKeys", StringUtils.join(keys, ","))));
-			
-			if(!result.isSuccess()) {
-				throw new IllegalStateException(result.getMessage());
-			}
-			
-			JsonConnection con = result.getResource();
-			con.setRemote(true);
-			localConnections.add(con);
-			saveCachedConnections();
-			return con;
-			
-		} catch(JsonStatusException e) { 
-			if(e.getStatusCode()==403) {
-				throw new IllegalStateException("This device has not been authorized to access the users account.");
-			} else {
-				throw new IllegalStateException(e.getMessage(), e);
-			}
+//			JsonConnectionResourceStatus result = getClient().doPost(
+//					"api/serverConnections/create", 
+//					JsonConnectionResourceStatus.class,
+//					generateAuthorizationParameters(
+//						new RequestParameter("name", name),
+//						new RequestParameter("hostname", hostname),
+//						new RequestParameter("port", String.valueOf(port)),
+//						new RequestParameter("remoteUsername", remoteUsername),
+//						new RequestParameter("aliases", StringUtils.join(aliases, ",")),
+//						new RequestParameter("hostKeys", StringUtils.join(keys, ","))));
+//			
+//			if(!result.isSuccess()) {
+//				throw new IllegalStateException(result.getMessage());
+//			}
+//			
+//			JsonConnection con = result.getResource();
+//			con.setRemote(true);
+//			localConnections.add(con);
+//			saveCachedConnections();
+//			return con;
+//			
+//		} catch(JsonStatusException e) { 
+//			if(e.getStatusCode()==403) {
+//				throw new IllegalStateException("This device has not been authorized to access the users account.");
+//			} else {
+//				throw new IllegalStateException(e.getMessage(), e);
+//			}
 		} catch(IOException e ) {
 			Log.error("Failed to list connections", e);
 			throw new IllegalStateException(e.getMessage(), e);
@@ -635,7 +635,7 @@ public class MobileDeviceKeystore implements KeyStore {
 				return createConnection(name, hostname, port, remoteUsername, aliases, hostKeys);
 			}
 
-			if(!ping()) {
+//			if(!ping()) {
 				
 				if(Objects.isNull(con)) {
 					con = new JsonConnection();
@@ -649,38 +649,38 @@ public class MobileDeviceKeystore implements KeyStore {
 				
 				saveCachedConnections();
 				return con;
-			}
+//			}
 			
-			localConnections.remove(con);
-			
-			JsonConnectionResourceStatus result = getClient().doPost(
-					Objects.nonNull(con) ? "api/serverConnections/update" : "api/serverConnections/create", 
-					JsonConnectionResourceStatus.class,
-					generateAuthorizationParameters(
-					    new RequestParameter("id", con.getId().toString()),
-						new RequestParameter("name", name),
-						new RequestParameter("hostname", hostname),
-						new RequestParameter("port", String.valueOf(port)),
-						new RequestParameter("remoteUsername", remoteUsername),
-						new RequestParameter("aliases", StringUtils.join(aliases, ",")),
-						new RequestParameter("hostKeys", StringUtils.join(keys, ","))));
-					
-			if(!result.isSuccess()) {
-				throw new IllegalStateException(result.getError());
-			}
-			
-			con =  result.getResource();
-			con.setRemote(true);
-			localConnections.add(con);
-			saveCachedConnections();
-			return con;
-			
-		} catch(JsonStatusException e) { 
-			if(e.getStatusCode()==403) {
-				throw new IllegalStateException("This device has not been authorized to access the users account.");
-			} else {
-				throw new IllegalStateException(e.getMessage(), e);
-			}
+//			localConnections.remove(con);
+//			
+//			JsonConnectionResourceStatus result = getClient().doPost(
+//					Objects.nonNull(con) ? "api/serverConnections/update" : "api/serverConnections/create", 
+//					JsonConnectionResourceStatus.class,
+//					generateAuthorizationParameters(
+//					    new RequestParameter("id", con.getId().toString()),
+//						new RequestParameter("name", name),
+//						new RequestParameter("hostname", hostname),
+//						new RequestParameter("port", String.valueOf(port)),
+//						new RequestParameter("remoteUsername", remoteUsername),
+//						new RequestParameter("aliases", StringUtils.join(aliases, ",")),
+//						new RequestParameter("hostKeys", StringUtils.join(keys, ","))));
+//					
+//			if(!result.isSuccess()) {
+//				throw new IllegalStateException(result.getError());
+//			}
+//			
+//			con =  result.getResource();
+//			con.setRemote(true);
+//			localConnections.add(con);
+//			saveCachedConnections();
+//			return con;
+//			
+//		} catch(JsonStatusException e) { 
+//			if(e.getStatusCode()==403) {
+//				throw new IllegalStateException("This device has not been authorized to access the users account.");
+//			} else {
+//				throw new IllegalStateException(e.getMessage(), e);
+//			}
 		} catch(IOException e ) {
 			Log.error("Failed to list connections", e);
 			throw new IllegalStateException(e.getMessage(), e);
