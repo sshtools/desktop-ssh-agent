@@ -49,7 +49,7 @@ import com.sshtools.common.logger.Log;
 public class AbstractAgentProcess {
 
 	public static File CONF_FOLDER = new File(System.getProperty("agent.configDir",
-			System.getProperty("user.home") + File.separator + ".mobile-agent"));
+			System.getProperty("user.home") + File.separator + ".desktop-ssh-agent"));
 	File agentProperties = new File(CONF_FOLDER, "agent.properties");
 	
 	protected String hostname;

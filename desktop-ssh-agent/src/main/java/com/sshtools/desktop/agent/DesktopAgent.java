@@ -994,7 +994,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			Log.info("Linking agent socket to agent.sock");
 		}
 		
-		Path userLink = Paths.get(System.getProperty("user.home"), ".mobile-agent", "agent.sock");
+		Path userLink = Paths.get(System.getProperty("user.home"), ".desktop-ssh-agent", "agent.sock");
 		userLink.getParent().toFile().mkdirs();
 		userLink.toFile().delete();
 
