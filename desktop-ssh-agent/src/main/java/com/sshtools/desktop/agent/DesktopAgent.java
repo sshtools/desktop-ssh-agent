@@ -318,7 +318,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		shell.dispose();
 		display.dispose();
 
-		System.exit(1);
+		System.exit(0);
 	}
 
 	public String getAgentSocketPath() {
@@ -1030,7 +1030,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		try {
 			new DesktopAgent(new Display(), new Runnable() {
 				public void run() {
-					System.exit(0);
+					System.exit(99);
 				}
 			}, new Runnable() {
 				public void run() {
