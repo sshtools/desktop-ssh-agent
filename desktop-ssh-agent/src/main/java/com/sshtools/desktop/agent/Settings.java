@@ -23,14 +23,13 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
 import com.hypersocket.json.utils.HypersocketUtils;
-import com.sshtools.common.logger.Log;
-import com.sshtools.common.publickey.SshKeyUtils;
 import com.sshtools.common.ssh.components.SshPublicKey;
 
 public class Settings {
@@ -47,7 +46,8 @@ public class Settings {
 	private String terminalArguments;
 	private boolean useBuiltInTerminal;
 	private Set<String> favoriteIds = new HashSet<String>();
-	private Set<File> keyfiles= new HashSet<File>();
+	private Map<SshPublicKey,File> localKeys= new HashMap<>();
+	private Set<File> keyfiles = new HashSet<>();
 	private IconMode iconMode = IconMode.AUTO;
 	
 	Settings() {
@@ -103,7 +103,7 @@ public class Settings {
 		properties.put("iconMode", iconMode.name());
 		
 		StringBuffer buf = new StringBuffer();
-		for(File keyfile : keyfiles) {
+		for(File keyfile : localKeys.values()) {
 			if(buf.length() > 0) {
 				buf.append(File.pathSeparator);
 			}	
@@ -170,37 +170,21 @@ public class Settings {
 		return useBuiltInTerminal;
 	}
 
-	public void addTemporaryKey(File keyfile) throws FileNotFoundException, IOException {
-		keyfiles.add(keyfile);
+	public void addTemporaryKey(SshPublicKey key, File keyfile) throws FileNotFoundException, IOException {
+		localKeys.put(key, keyfile);
 		save();
 	}
 	
-	public void removeTemporaryKey(File keyfile) throws FileNotFoundException, IOException {
-		keyfiles.remove(keyfile);
+	public void removeTemporaryKey(SshPublicKey key) throws FileNotFoundException, IOException {
+		localKeys.remove(key);
 		save();
 	}
 
 	public void removeAllKeys() throws FileNotFoundException, IOException {
-		keyfiles.clear();
+		localKeys.clear();
 		save();
 	}
 
-	public void removeTemporaryKey(SshPublicKey key) throws IOException {
-		File selected = null;
-		for(File file : keyfiles) {
-			try {
-				if(SshKeyUtils.getPublicKey(file).equals(key)) {
-					selected = file;
-					break;
-				}
-			} catch (Exception e) {
-				Log.debug(String.format("%s cannot be loaded!", file.getName()), e);
-			}
-		}
-		if(!Objects.isNull(selected)) {
-			removeTemporaryKey(selected);
-		}
-	}
 
 	public void setIconMode(IconMode iconMode) {
 		this.iconMode = iconMode;

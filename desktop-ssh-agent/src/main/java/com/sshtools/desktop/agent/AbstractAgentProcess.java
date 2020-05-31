@@ -77,6 +77,10 @@ public class AbstractAgentProcess {
 		
 	}
 	
+	protected boolean isAuthorized() {
+		return !StringUtils.isAnyBlank(hostname, authorization, privateKey, username, deviceName, publicKey);
+	}
+	
 	protected Properties loadProperties() throws IOException {
 		Properties properties = new Properties();
 		

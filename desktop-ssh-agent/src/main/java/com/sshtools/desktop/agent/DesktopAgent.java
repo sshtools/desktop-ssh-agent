@@ -1514,6 +1514,9 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 					            			public void run() {
 								            	// Load private key from file, prompting for passphrase if needed.
 								            	File keyfile= new File(result);
+								            	if(!keyfile.isAbsolute()) {
+								            		keyfile = new File(keyfile.getAbsolutePath());
+								            	}
 
 								            	try(InputStream in = new FileInputStream(keyfile)) {
 								            		
@@ -1790,39 +1793,46 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		}
 
 		public void run() {
-			CustomDialog dialog = new CustomDialog(new Shell(), SWT.ICON_QUESTION, 0,
-					SEND_TO_DEVICE, USE_LOCALLY, CANCEL);
-			dialog.setText("Import Key");
-			dialog.setMessage(String.format(
-					"You are adding the following key to the Desktop SSH Agent:\r\n\r\n%s\r\n\r\n"  + 
-			        "Do you want to store this permanently on your mobile device? You can also just use it locally on this computer.",
-					description));
-
-			String result = dialog.open();
-
-			if (result == SEND_TO_DEVICE) {
-				display.syncExec(new SendToDevice(this));
-			} else if (result == CANCEL) {
-				ret = false;
-			} else {
-				SshKeyPair pair = new SshKeyPair();
-				pair.setPrivateKey(prvkey);
-				pair.setPublicKey(pubkey);
-
-				try {
-					localKeys.addKey(pair, description, cs);
-					
-					if(keyfile!=null) {
-						Settings.getInstance().addTemporaryKey(keyfile);
-					}
-					
-					displayKeys();
-					ret = true;
-				} catch (IOException e) {
-					Log.error("Failed to add temporary key", e);
+			
+			if(isAuthorized()) {
+				CustomDialog dialog = new CustomDialog(new Shell(), SWT.ICON_QUESTION, 0,
+						SEND_TO_DEVICE, USE_LOCALLY, CANCEL);
+				dialog.setText("Import Key");
+				dialog.setMessage(String.format(
+						"You are adding the following key to the Desktop SSH Agent:\r\n\r\n%s\r\n\r\n"  + 
+				        "Do you want to store this permanently on your mobile device? You can also just use it locally on this computer.",
+						description));
+	
+				String result = dialog.open();
+				
+				if (result == SEND_TO_DEVICE) {
+					display.syncExec(new SendToDevice(this));
+					return;
+				} else if (result == CANCEL) {
 					ret = false;
+					return;
 				}
+			
 			}
+
+			SshKeyPair pair = new SshKeyPair();
+			pair.setPrivateKey(prvkey);
+			pair.setPublicKey(pubkey);
+
+			try {
+				localKeys.addKey(pair, description, cs);
+				
+				if(keyfile!=null) {
+					Settings.getInstance().addTemporaryKey(pair.getPublicKey(), keyfile);
+				}
+				
+				displayKeys();
+				ret = true;
+			} catch (IOException e) {
+				Log.error("Failed to add temporary key", e);
+				ret = false;
+			}
+			
 		}
 
 		boolean isSuccess() {
@@ -2010,7 +2020,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			dialog.setText("Delete Key");
 			dialog.setMessage(
 					"A request has been received to delete the following key?\r\n\r\n"
-					+ deviceKeys.get(key) + " " + SshKeyUtils.getFingerprint(key));
+					+ SshKeyUtils.getFingerprint(key));
 
 			String result = dialog.open();
 
@@ -2042,9 +2052,9 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 								}, 3);
 								
 							} else {
-								Settings.getInstance().removeTemporaryKey(new File(localKeys.getPublicKeys().get(key)));
+								Settings.getInstance().removeTemporaryKey(key);
 								localKeys.deleteKey(key);
-								
+								displayKeys();
 							}
 								
 							ret = true;

@@ -266,7 +266,7 @@ public class MobileDeviceKeystore implements KeyStore {
 	@Override
 	public boolean addKey(SshPrivateKey prvkey, SshPublicKey pubkey, String description, KeyConstraints cs) {
 		
-		try {
+		try { 
 			
 			Map<SshPublicKey, String> deviceKeys = getDeviceKeys();
 			if(deviceKeys.containsKey(pubkey)) {
@@ -687,5 +687,4 @@ public class MobileDeviceKeystore implements KeyStore {
 		} 
 	}
 
-	
 }
