@@ -162,7 +162,7 @@ public class SettingsDialog extends Dialog {
 			
 			boolean authorized = !StringUtils.isBlank(agent.getAuthorizationToken());
 			
-			new Label(this, SWT.NONE).setText("Username");
+			new Label(this, SWT.NONE).setText("Email Address");
 		    
 		    username = new Text(this, SWT.SINGLE | SWT.BORDER);
 		    username.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
