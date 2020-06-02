@@ -121,25 +121,26 @@ public class AbstractAgentProcess {
 	
 	public static void checkFilePermissions(Path path) {
 		if(System.getProperty("os.name").toLowerCase().startsWith("windows")) {
-			try {
-				AclFileAttributeView aclAttr = Files.getFileAttributeView(path, AclFileAttributeView.class);
-				UserPrincipalLookupService upls = path.getFileSystem().getUserPrincipalLookupService();
-				UserPrincipal user = upls.lookupPrincipalByName(System.getProperty("user.name"));
-				AclEntry.Builder builder = AclEntry.newBuilder();       
-				builder.setPermissions( EnumSet.of(AclEntryPermission.READ_DATA,
-				        AclEntryPermission.READ_ACL, 
-				        AclEntryPermission.READ_ATTRIBUTES, 
-				        AclEntryPermission.READ_NAMED_ATTRS,
-				        AclEntryPermission.WRITE_ACL, 
-				        AclEntryPermission.WRITE_DATA,
-				        AclEntryPermission.DELETE
-				));
-				builder.setPrincipal(user);
-				builder.setType(AclEntryType.ALLOW);
-				aclAttr.setAcl(Collections.singletonList(builder.build()));
-			} catch (IOException e) {
-				Log.warn("Failed to set file permissions on agent.properties", e);
-			}
+//			try {
+//				AclFileAttributeView aclAttr = Files.getFileAttributeView(path, AclFileAttributeView.class);
+//				UserPrincipalLookupService upls = path.getFileSystem().getUserPrincipalLookupService();
+//				UserPrincipal user = upls.lookupPrincipalByName(System.getProperty("user.name"));
+//				AclEntry.Builder builder = AclEntry.newBuilder();       
+//				builder.setPermissions( EnumSet.of(AclEntryPermission.READ_DATA,
+//				        AclEntryPermission.READ_ACL, 
+//				        AclEntryPermission.READ_ATTRIBUTES, 
+//				        AclEntryPermission.READ_NAMED_ATTRS,
+//				        AclEntryPermission.WRITE_ACL, 
+//				        AclEntryPermission.WRITE_DATA,
+//				        AclEntryPermission.APPEND_DATA,
+//				        AclEntryPermission.DELETE
+//				));
+//				builder.setPrincipal(user);
+//				builder.setType(AclEntryType.ALLOW);
+//				aclAttr.setAcl(Collections.singletonList(builder.build()));
+//			} catch (IOException e) {
+//				Log.warn("Failed to set file permissions on agent.properties", e);
+//			}
 		} else {
 			try {
 				Set<PosixFilePermission> newPermissions = PosixFilePermissions.fromString("rw-------");
