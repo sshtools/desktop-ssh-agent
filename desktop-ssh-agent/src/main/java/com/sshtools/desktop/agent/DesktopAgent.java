@@ -99,7 +99,6 @@ import com.sshtools.desktop.agent.Settings.IconMode;
 import com.sshtools.desktop.agent.swt.ConnectionDialog;
 import com.sshtools.desktop.agent.swt.CustomDialog;
 import com.sshtools.desktop.agent.swt.InputForm;
-import com.sshtools.desktop.agent.swt.LoginForm;
 import com.sshtools.desktop.agent.swt.SWTAboutDialog;
 import com.sshtools.desktop.agent.swt.SWTUtil;
 import com.sshtools.desktop.agent.swt.SettingsDialog;
@@ -1856,21 +1855,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			}
 			
 			try {
-				JsonClient client = keystore.getLoggedOnClient(new PasswordPrompt() {
-
-					@Override
-					public String getPassword(String username) {
-
-						LoginForm login = new LoginForm(display, false,
-								"You need to supply your password to import a device key.");
-						if (login.logon()) {
-							return login.getPassword();
-						} else {
-							throw new IllegalStateException();
-						}
-					}
-
-				}, 3);
+				JsonClient client = keystore.getClient();
 
 				InputForm input = new InputForm(display, "Name Required", "Please enter a name to identify this key.", FileUtils.lastPathElement(importKey.description), false);
 				
@@ -1887,11 +1872,11 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 						SshPrivateKeyFileFactory.OPENSSH_FORMAT);
 
 		        JsonResourceStatus response = client.doPost("api/userPrivateKeys/importKey", JsonResourceStatus.class,
-		                new RequestParameter("name", name),
+		                generateAuthorizationParameters(new RequestParameter("name", name),
 		                new RequestParameter("type", "private"),
 		                new RequestParameter("deviceKey", "true"),
 		                new RequestParameter("passphrase", uuid),
-		                new RequestParameter("key", new String(prv.getFormattedKey())));
+		                new RequestParameter("key", new String(prv.getFormattedKey()))));
 
 		        if(response.isSuccess()) {
 		        		Toast.toast(ToastType.INFO, "Import Key", response.getMessage());
@@ -1954,21 +1939,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 							SWTUtil.showError("Delete Keys", "The gateway cannot be contacted to delete all keys.");
 							return;
 						}
-						keystore.deleteDeviceKeys(new PasswordPrompt() {
-
-							@Override
-							public String getPassword(String username) {
-
-								LoginForm login = new LoginForm(display, false,
-										"You need to supply your password to delete a device key.");
-								if (login.logon()) {
-									return login.getPassword();
-								} else {
-									throw new IllegalStateException();
-								}
-							}
-
-						}, 3);
+						keystore.deleteDeviceKeys();
 						
 						localKeys.deleteAllKeys();
 						Settings.getInstance().removeAllKeys();
@@ -2035,25 +2006,12 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 									return;
 								}
 								
-								keystore.deleteDeviceKey(key, new PasswordPrompt() {
-		
-									@Override
-									public String getPassword(String username) {
-		
-										LoginForm login = new LoginForm(display, false,
-												"You need to supply your password to delete a device key.");
-										if (login.logon()) {
-											return login.getPassword();
-										} else {
-											throw new IllegalStateException();
-										}
-									}
-		
-								}, 3);
+								keystore.deleteDeviceKey(key);
 								
 							} else {
 								Settings.getInstance().removeTemporaryKey(key);
 								localKeys.deleteKey(key);
+
 								displayKeys();
 							}
 								

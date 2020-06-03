@@ -19,7 +19,6 @@
 package com.sshtools.desktop.agent;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
 import java.util.Base64;
 
@@ -27,15 +26,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.hypersocket.json.JsonClient;
 import com.hypersocket.json.JsonResponse;
-import com.hypersocket.json.JsonStatusException;
 import com.hypersocket.json.RequestParameter;
 import com.hypersocket.json.utils.HypersocketUtils;
 import com.sshtools.common.logger.Log;
 import com.sshtools.common.publickey.SshKeyPairGenerator;
 import com.sshtools.common.publickey.SshKeyUtils;
-import com.sshtools.common.ssh.SshException;
 import com.sshtools.common.ssh.components.SshKeyPair;
-import com.sshtools.common.ssh.components.SshPublicKey;
 
 public class AuthorizeAgent extends AbstractAgentProcess {
 
@@ -195,35 +191,6 @@ public class AuthorizeAgent extends AbstractAgentProcess {
 		}
 		
 		
-	}
-	
-	private void validateAuthorization(JsonClient client, String username, String key, String previousToken, String deviceName, String authorization) throws IOException, JsonStatusException, SshException {
-	
-		JsonStringResource systemKey = client.doGet(
-				String.format("api/userPrivateKeys/systemKey/%s", username), 
-					JsonStringResource.class);
-		
-		byte[] data = generateToken(deviceName, username, key, previousToken);
-
-		SshPublicKey k = SshKeyUtils.getPublicKey(systemKey.getResource());
-		
-		if(!k.verifySignature(Base64.getUrlDecoder().decode(authorization), data)) {
-			throw new IOException("Invalid signature in authorization response");
-		}
-	}
-
-	private byte[] generateToken(String deviceName, String principalName, String key, String previousToken) throws UnsupportedEncodingException {
-		
-		StringBuffer buffer = new StringBuffer();
-		buffer.append(deviceName);
-		buffer.append("|");
-		buffer.append(principalName);
-		buffer.append("|");
-		buffer.append(key);
-		buffer.append("|");
-		buffer.append(StringUtils.defaultString(previousToken, ""));
-		
-		return buffer.toString().getBytes("UTF-8");
 	}
 	
 	public static void main(String[] args) throws IOException {

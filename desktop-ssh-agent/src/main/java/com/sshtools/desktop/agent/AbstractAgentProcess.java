@@ -25,6 +25,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.AclEntry;
@@ -35,8 +37,12 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.nio.file.attribute.UserPrincipal;
 import java.nio.file.attribute.UserPrincipalLookupService;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -44,7 +50,14 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.hypersocket.json.JsonClient;
 import com.hypersocket.json.JsonStatusException;
+import com.hypersocket.json.RequestParameter;
+import com.hypersocket.json.utils.HypersocketUtils;
 import com.sshtools.common.logger.Log;
+import com.sshtools.common.publickey.InvalidPassphraseException;
+import com.sshtools.common.publickey.SshKeyUtils;
+import com.sshtools.common.ssh.SshException;
+import com.sshtools.common.ssh.components.SshKeyPair;
+import com.sshtools.common.ssh.components.SshPublicKey;
 
 public class AbstractAgentProcess {
 
@@ -173,38 +186,6 @@ public class AbstractAgentProcess {
 		client.setPath("/app");
 		return client;
 	}
-	
-	protected JsonClient logonClient() throws IOException {
-		
-		JsonClient client = new JsonClient(hostname, port, !strictSSL, false);
-		client.setPath("/app");
-		
-		boolean promptForPassword = StringUtils.isBlank(password);
-		for(int i=0;i<3;i++ ) {
-			try {
-				if(promptForPassword) {
-					password = new String(readPassword("Password: "));
-				}
-				client.logon(username, password);
-				break;
-			} catch(IOException | JsonStatusException e) {
-				System.err.println(e.getMessage());
-			}
-			if(!promptForPassword) {
-				break;
-			}
-		}
-		if(!client.isLoggedOn()) {
-			if(promptForPassword) {
-				System.err.println("Authentication failed too many times.");
-			} else {
-				System.err.println("Bad username or password.");
-			}
-			System.exit(1);					
-		}
-		
-		return client;
-	}
 
 	public String getHostname() {
 		return hostname;
@@ -226,5 +207,69 @@ public class AbstractAgentProcess {
 		return deviceName;
 	}
 	
+	protected byte[] generateToken(String deviceName, String principalName, String key, String previousToken) throws UnsupportedEncodingException {
+		
+		StringBuffer buffer = new StringBuffer();
+		buffer.append(deviceName);
+		buffer.append("|");
+		buffer.append(principalName);
+		buffer.append("|");
+		buffer.append(key);
+		buffer.append("|");
+		buffer.append(StringUtils.defaultString(previousToken, ""));
+		
+		return buffer.toString().getBytes("UTF-8");
+	}
 	
+	protected byte[] generateAuthorization(int version, long timestamp, String token, String principal) throws IOException {
+		
+		StringBuffer buffer = new StringBuffer();
+		buffer.append(version);
+		buffer.append("|");
+		buffer.append(timestamp);
+		buffer.append("|");
+		buffer.append(token);
+		buffer.append("|");
+		buffer.append(principal);
+		
+		return buffer.toString().getBytes("UTF-8");
+	}
+	
+	protected void validateAuthorization(JsonClient client, String username, String key, String previousToken, String deviceName, String authorization) throws IOException, JsonStatusException, SshException {
+		
+		JsonStringResource systemKey = client.doGet(
+				String.format("api/userPrivateKeys/systemKey/%s", username), 
+					JsonStringResource.class);
+		
+		byte[] data = generateToken(deviceName, username, key, previousToken);
+
+		SshPublicKey k = SshKeyUtils.getPublicKey(systemKey.getResource());
+		
+		if(!k.verifySignature(Base64.getUrlDecoder().decode(authorization), data)) {
+			throw new IOException("Invalid signature in authorization response");
+		}
+	}
+	
+	protected RequestParameter[] generateAuthorizationParameters(RequestParameter...parameters) throws IOException {
+		List<RequestParameter> params = new ArrayList<RequestParameter>(Arrays.asList(parameters));
+		
+		try {
+			SshKeyPair pair = SshKeyUtils.getPrivateKey(privateKey, "");	
+			long timestamp = System.currentTimeMillis();
+	
+			byte[] auth = generateAuthorization(1, timestamp, 
+					authorization, getUsername());
+			String signature = Base64.getUrlEncoder().encodeToString(pair.getPrivateKey().sign(auth));
+			
+			params.add(new RequestParameter("version", "1"));
+			params.add(new RequestParameter("timestamp", String.valueOf(timestamp)));
+			params.add(new RequestParameter("signature", signature));
+			params.add(new RequestParameter("username", getUsername()));
+			params.add(new RequestParameter("token", HypersocketUtils.checkNull(authorization)));
+	
+			return params.toArray(new RequestParameter[0]);
+		} catch(InvalidPassphraseException e) {
+			throw new IOException(e.getMessage(), e);
+		}
+	}
 }

@@ -18,14 +18,12 @@
  */
 package com.sshtools.desktop.agent;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.hypersocket.json.JsonClient;
 import com.hypersocket.json.JsonResponse;
-import com.hypersocket.json.RequestParameter;
 import com.sshtools.common.logger.Log;
 
 public class DeauthorizeAgent extends AbstractAgentProcess {
@@ -46,36 +44,29 @@ public class DeauthorizeAgent extends AbstractAgentProcess {
 			throw new IOException("Missing username and/or hostname from configuration.");
 		}
 		
-		for(String arg : args) {
-			if(arg.startsWith("--password=")) {
-				password = StringUtils.substringAfter(arg, "--password=");
-			}
-		}
-		
 		System.out.println(String.format("Deauthorizing the device %s", deviceName));
 		
 		try {
-			if(!CONF_FOLDER.exists()) {
-				CONF_FOLDER.mkdirs();
-			}
 			
-			File key = new File(CONF_FOLDER, "key");
-			
-			JsonClient client = logonClient();
+			JsonClient client = createClient();
 			
 			try {
 				JsonResponse response = client.doPost("api/agent/deauthorize", JsonResponse.class,
-						new RequestParameter("token", authorization),
-						new RequestParameter("username", username));
+						generateAuthorizationParameters());
 	
 				if(!response.isSuccess()) {
 					throw new IOException(response.getMessage());
 				}
 				
-				key.delete();
-				CONF_FOLDER.delete();
-				
 				saveProperty("authorization", "");
+				saveProperty("username", "");
+				saveProperty("hostname", "gateway.sshtools.com");
+				saveProperty("port", String.valueOf(443));
+				saveProperty("strictSSL", String.valueOf(true));
+				saveProperty("deviceName", "");
+				saveProperty("privateKey", "");
+				saveProperty("publicKey", "");
+				
 				System.out.println("Device has been deauthorized");
 			
 			} finally {

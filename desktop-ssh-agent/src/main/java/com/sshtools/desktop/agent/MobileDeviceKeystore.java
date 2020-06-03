@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,13 +46,11 @@ import com.hypersocket.json.JsonResourceStatus;
 import com.hypersocket.json.JsonResponse;
 import com.hypersocket.json.JsonStatusException;
 import com.hypersocket.json.RequestParameter;
-import com.hypersocket.json.utils.HypersocketUtils;
 import com.sshtools.agent.ForwardingNotice;
 import com.sshtools.agent.KeyConstraints;
 import com.sshtools.agent.KeyStore;
 import com.sshtools.agent.exceptions.KeyTimeoutException;
 import com.sshtools.common.logger.Log;
-import com.sshtools.common.publickey.InvalidPassphraseException;
 import com.sshtools.common.publickey.SshKeyUtils;
 import com.sshtools.common.publickey.SshPublicKeyFile;
 import com.sshtools.common.publickey.SshPublicKeyFileFactory;
@@ -119,34 +116,11 @@ public class MobileDeviceKeystore implements KeyStore {
 			
 			JsonResponse response = client.doPost("api/agent/check",
 					JsonResponse.class, 
-					generateAuthorizationParameters());
+					agent.generateAuthorizationParameters());
 					
 			return response.isSuccess();
 		} catch (Throwable e) {
 			return false;
-		}
-	}
-	
-	private RequestParameter[] generateAuthorizationParameters(RequestParameter...parameters) throws IOException {
-		List<RequestParameter> params = new ArrayList<RequestParameter>(Arrays.asList(parameters));
-		
-		try {
-			SshKeyPair pair = SshKeyUtils.getPrivateKey(agent.getPrivateKey(), "");	
-			long timestamp = System.currentTimeMillis();
-	
-			byte[] auth = CheckAuthorization.generateAuthorization(1, timestamp, 
-					agent.getAuthorizationToken(), agent.getUsername());
-			String signature = Base64.getUrlEncoder().encodeToString(pair.getPrivateKey().sign(auth));
-			
-			params.add(new RequestParameter("version", "1"));
-			params.add(new RequestParameter("timestamp", String.valueOf(timestamp)));
-			params.add(new RequestParameter("signature", signature));
-			params.add(new RequestParameter("username", agent.getUsername()));
-			params.add(new RequestParameter("token", HypersocketUtils.checkNull(agent.getAuthorizationToken())));
-	
-			return params.toArray(new RequestParameter[0]);
-		} catch(InvalidPassphraseException e) {
-			throw new IOException(e.getMessage(), e);
 		}
 	}
 	
@@ -379,7 +353,7 @@ public class MobileDeviceKeystore implements KeyStore {
 		
 		try {
 			JsonSignRequestStatus request = getClient().doPost("api/agent/signPayload", JsonSignRequestStatus.class,
-					generateAuthorizationParameters(
+					agent.generateAuthorizationParameters(
 						new RequestParameter("flags", String.valueOf(flags)),
 						new RequestParameter("fingerprint", pubkey.getFingerprint()),
 						new RequestParameter("remoteName", agent.getDeviceName()),
@@ -436,27 +410,6 @@ public class MobileDeviceKeystore implements KeyStore {
 	public boolean isLocked() {
 		return false;
 	}
-	
-	public JsonClient getLoggedOnClient(PasswordPrompt prompt, int maxAttempts) throws IOException, JsonStatusException {
-		
-		verifyClient();
-		
-		if(client.isLoggedOn()) {
-	        return client;
-	    } else {
-	    	IOException lastError = null;
-	    	while(maxAttempts > 0) {
-	    		try {
-					client.logon(agent.getUsername(), prompt.getPassword(agent.getUsername()));
-					return client;
-				} catch (IOException e) {
-					lastError = e;
-				}
-	    	}
-	    	throw lastError;
-	    	
-	    }
-	}
 
 	public void deleteTemporaryKeys() {
 		
@@ -467,21 +420,21 @@ public class MobileDeviceKeystore implements KeyStore {
 		}
 	}
 
-	public void deleteDeviceKey(SshPublicKey key, PasswordPrompt passwordPrompt, int maxAttempts) throws IOException, JsonStatusException {
-		doDeleteDeviceKeys(passwordPrompt, maxAttempts, key);
+	public void deleteDeviceKey(SshPublicKey key) throws IOException, JsonStatusException {
+		doDeleteDeviceKeys(key);
 	}
 	
-	public void deleteDeviceKeys(PasswordPrompt passwordPrompt, int maxAttempts) throws IOException, JsonStatusException {
-		doDeleteDeviceKeys(passwordPrompt, maxAttempts, getDeviceKeys().keySet().toArray(new SshPublicKey[0]));
+	public void deleteDeviceKeys() throws IOException, JsonStatusException {
+		doDeleteDeviceKeys(getDeviceKeys().keySet().toArray(new SshPublicKey[0]));
 	}
 	
-	private void doDeleteDeviceKeys(PasswordPrompt prompt, int maxAttempts, SshPublicKey... keys) throws IOException, JsonStatusException {
+	private void doDeleteDeviceKeys(SshPublicKey... keys) throws IOException, JsonStatusException {
 		
 		verifyClient();
 		
 		JsonPrivateKeyList results = client.doPost("api/userPrivateKeys/personal", 
 				JsonPrivateKeyList.class,
-				generateAuthorizationParameters());
+				agent.generateAuthorizationParameters());
 
         if(!results.isSuccess()) {
             throw new IOException(results.getError());
@@ -502,7 +455,7 @@ public class MobileDeviceKeystore implements KeyStore {
 			try {
     			client.doDelete("api/userPrivateKeys/key/" + entry.getValue().toString() + "?fromDevice=false", 
     					JsonResourceStatus.class,
-    					generateAuthorizationParameters());
+    					agent.generateAuthorizationParameters());
 	        } catch(JsonStatusException e) {
 	            if(e.getStatusCode()==404) {
 	                continue;
@@ -604,7 +557,7 @@ public class MobileDeviceKeystore implements KeyStore {
 							
 				try {
 					client.doDelete("api/serverConnections/delete/" + con.getId(), JsonResourceStatus.class,
-							generateAuthorizationParameters());
+							agent.generateAuthorizationParameters());
 				} catch(JsonStatusException e) {
 			        throw new IOException(e.getMessage(), e);
 				}
