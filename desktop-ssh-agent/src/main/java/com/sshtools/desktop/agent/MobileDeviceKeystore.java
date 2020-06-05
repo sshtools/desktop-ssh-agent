@@ -453,9 +453,9 @@ public class MobileDeviceKeystore implements KeyStore {
         
 		for(Map.Entry<SshPublicKey,Long> entry : ids.entrySet()) {
 			try {
-    			client.doDelete("api/userPrivateKeys/key/" + entry.getValue().toString() + "?fromDevice=false", 
+    			client.doDelete("api/userPrivateKeys/key/" + entry.getValue().toString(), 
     					JsonResourceStatus.class,
-    					agent.generateAuthorizationParameters());
+    					agent.generateAuthorizationParameters(new RequestParameter("fromDevice", "false")));
 	        } catch(JsonStatusException e) {
 	            if(e.getStatusCode()==404) {
 	                continue;

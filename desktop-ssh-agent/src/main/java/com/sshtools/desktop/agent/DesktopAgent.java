@@ -1737,6 +1737,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 					}
 					
 					synchronized (deviceKeys) {
+						loadDeviceKeys();
 						for (Map.Entry<SshPublicKey, String> entry : deviceKeys.entrySet()) {
 							TableItem item = new TableItem(keyTable, SWT.NONE);
 							item.setData(entry.getKey());
