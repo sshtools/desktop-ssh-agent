@@ -37,7 +37,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Shell;
 
-import com.sshtools.common.util.Version;
+import com.sshtools.desktop.agent.SSHTOOLSVersion;
 
 public class SWTAboutDialog extends Dialog {
 	private Shell shell;
@@ -82,7 +82,7 @@ public class SWTAboutDialog extends Dialog {
 		data.grabExcessHorizontalSpace = true;
 		descriptionLabel.setLayoutData(data);
 		Label versionLabel = new Label(commonAboutDetails, SWT.WRAP | SWT.CENTER);
-		versionLabel.setText("Version " + Version.getVersion());
+		versionLabel.setText("Version " + SSHTOOLSVersion.getVersion());
 		data = new GridData();
 		data.widthHint = 400;
 		data.horizontalAlignment = GridData.CENTER;
