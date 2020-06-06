@@ -2,4 +2,4 @@ Template: jadaptive/openssh_warning
 Type: note
 Description: The version of OpenSSH you have installed is not fully compatible with these scripts. 
  For stronger security, and to support these scripts please upgrade to OpenSSH 6.8 or greater.
-Alternatively you can use the keyserver-sync script to periodically synchronize keys through the crontab.
+ Alternatively you can use the keyserver-sync script to periodically synchronize keys through the crontab.
