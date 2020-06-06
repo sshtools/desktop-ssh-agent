@@ -48,31 +48,19 @@ public class CheckAuthorization extends AbstractAgentProcess {
 		
 		try {
 
-			SshKeyPair pair = SshKeyUtils.getPrivateKey(privateKey, "");			
-			
 			JsonClient client = new JsonClient(hostname, port, !strictSSL, false);
 			client.setPath("/app");
 			
 			try {
-				
 				JsonResponse response;
-				long timestamp = System.currentTimeMillis();
-
-				byte[] auth = generateAuthorization(1, timestamp, authorization, username);
-				String signature = Base64.getUrlEncoder().encodeToString(pair.getPrivateKey().sign(auth));
-				
 				response = client.doPost("api/agent/check",
 						JsonResponse.class, 
-						new RequestParameter("version", "1"),
-						new RequestParameter("username", username),
-						new RequestParameter("timestamp", String.valueOf(timestamp)),
-						new RequestParameter("signature", signature),
-						new RequestParameter("token", HypersocketUtils.checkNull(authorization)));
+						generateAuthorizationParameters());
 			
 				if(response.isSuccess()) {
-					System.out.println("Device has been authorized");
+					Log.info("Device has been authorized");
 				} else {
-					System.out.println("Device IS NOT authorized");
+					Log.warn("Device IS NOT authorized");
 				}
 				
 			} finally {
