@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 . /usr/share/debconf/confmodule
 
@@ -6,8 +6,8 @@ version_raw=`ssh -V 2>&1`
 major_version=`echo "${version_raw}" | sed 's/^.*_\([0-9]\)\.[0-9].*$/\1/'`
 minor_version=`echo "${version_raw}" | sed 's/^.*_[0-9]\.\([0-9]\).*$/\1/'`
     
-if [[ "$major_version" -le 6 ]]; then
-    if [[ "$major_version" -lt 8 ]]; then
+if [ "$major_version" -le 6 ]; then
+    if [ "$major_version" -lt 8 ]; then
         db_input high jadaptive/openssh_warning || true
         db_go
     fi
