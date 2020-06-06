@@ -1,0 +1,16 @@
+# Configuration for jadaptive-keyserver-scripts
+#
+
+# Gateway host
+#
+# The default hostname or IP address of the gateway from which to retrieve keys.
+#
+GATEWAY_HOST=gateway.sshtools.com
+
+# Allow incorrect SSL certificates when connecting to the 
+# GATEWAY_HOST.
+#
+# Default: N
+# Recommended: N - To avoid MITM. The gateway is your trusted keystore!
+#
+ALLOW_INSECURE_GATEWAY=n

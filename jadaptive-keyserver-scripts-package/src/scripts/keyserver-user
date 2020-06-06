@@ -1,0 +1,103 @@
+#!/bin/bash
+#
+# Authorize or de-authorize gateway users for either the current user
+# or the system as a whole.
+#
+# Usage :-
+#
+# 1. Show all authorized users for this user
+#
+# auth-keyserver-user
+#
+# 2. Add a new gateway email address that is allowed to authenticate as this user
+#
+# auth-keyserver-user --add auser@acompany.com
+#
+# 3. Remove a gateway address from those allowed to authenticate as this user
+#
+# auth-keyserver-user --remove auser@acompany.com
+#
+# 4. Show all globally authorized users 
+#
+# auth-keyserver-user --system
+#
+# 5. Add a new gateway email address that is allowed to authenticate as any user
+#
+# auth-keyserver-user --add --system auser@acompany.com
+#
+# 6. Remove a gateway address from those allowed to authenticate as any user
+#
+# auth-keyserver-user --remove --system auser@acompany.com
+ 
+
+# Constants
+USAGE="usage: $0 [--remove <gateway-email-address>|--add <gateway-email-address|-help|-?]"
+
+# State
+op=show
+auth_path="${HOME}/.ssh/authorized_users"
+
+# Parse command line
+if [ "$1" = "--remove" ] ; then
+	op=remove
+	shift
+elif [ "$1" = "--add" ] ; then
+	op=add
+	shift
+elif [ "$1" = "--help" -o "$1" = "-?" ] ; then
+	echo "${USAGE}" >&2
+	exit 1 
+fi
+
+if [ "$1" == "--system" ] ; then
+	auth_path=/etc/security/authorized_users
+	shift 
+fi
+
+if [ $# -gt 1 ] ; then
+	echo "Too many arguments" >&2
+	echo "${USAGE}" >&2
+	exit 1
+fi
+
+# Create directory if doesn't exist
+if [ "${op}" != show -a ! -d $(dirname "${auth_path}") ] ; then
+	if ! mkdir -p $(dirname "${auth_path}") 2>/dev/null; then
+		echo "$0: Failed to create directory for storing authorized users." >&2
+		exit 2
+	fi
+fi
+
+# Execute
+if [ "${op}" = "show" ] ; then
+	cat "${auth_path}" 2>/dev/null
+elif [ "${op}" = "add" ] ; then
+	if [ -z "${1}" ] ;then
+		echo "You must supply the email address of the gateway user you wish to authorize." >&2
+		echo "${USAGE}" >&2
+		exit 1
+	fi
+	if test -f "${auth_path}" && grep "^${1}$" ""${auth_path}"" >/dev/null ; then
+		echo "$0: The user ${1} is already authorized." >&2
+		exit 2
+	else
+		echo "${1}" >> "${auth_path}"
+		if ! chmod 644 "${auth_path}"; then
+			echo "$0: WARNING. Could not set permissions for ${auth_path}}." >&2
+		fi
+	fi
+elif [ "${op}" = "remove" ] ; then
+	if [ -z "${1}" ] ;then
+		echo "You must supply the email address of the gateway user you wish to remove authorization for." >&2
+		echo "${USAGE}" >&2
+		exit 1
+	fi
+	if test -f "${auth_path}" && ! grep "^${1}$" ""${auth_path}"" >/dev/null ; then
+		echo "$0: The user ${1} is not authorized." >&2
+		exit 2
+	else
+		grep -v "^${1}$" "${auth_path}" > "${auth_path}.tmp"
+		mv "${auth_path}.tmp" "${auth_path}"
+	fi
+fi
+

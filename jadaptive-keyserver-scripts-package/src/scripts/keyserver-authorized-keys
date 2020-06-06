@@ -1,0 +1,63 @@
+#!/bin/bash
+
+user_home="${1}"
+user_name="${2}"
+
+# Get configuration
+source /etc/default/jadaptive-keyserver
+if [ -z "${GATEWAY_HOST}" ]; then
+	GATEWAY_HOST=gateway.sshtools.com
+fi
+if [ -z "${ALLOW_INSECURE_GATEWAY}" ]; then
+	ALLOW_INSECURE_GATEWAY=N
+fi
+
+# Init
+curl_opts=
+case "${ALLOW_INSECURE_GATEWAY}" in
+	y*|Y*) curl_opts="-k" ;;
+esac 
+
+
+if [ -f "${user_home}/.ssh/authorized_users" ]; then
+	if [ $(stat -c %a "${user_home}/.ssh/authorized_users") != 644 ]; then
+		echo "Permissions for ${user_home}/.ssh/authorized_users must be 644. No write access allowed for group or other." >&2
+		exit 2
+	fi
+fi
+
+if [ -f "/etc/security/authorized_users" ]; then
+	if [ $(stat -c %a "/etc/security/authorized_users") != 644 ]; then
+		echo "Permissions for /etc/security/authorized_users must be 644. No write access allowed for group or other." >&21
+		exit 2
+	fi
+fi
+
+# User
+if [ -f "${user_home}/.ssh/authorized_users" ] ; then
+	while read line; do
+		out=$(curl ${curl_opts} -sf "https://${GATEWAY_HOST}/authorizedKeys/${line}")
+		if [ -n "${out}" ]; then
+            echo "# Keys for authorized user ${line}"
+			echo "${out}"
+		fi
+	done < "${user_home}/.ssh/authorized_users"
+fi
+
+# Remote
+out=$(curl ${curl_opts} -sf "https://${GATEWAY_HOST}/assignedKeys/${MACHINE_ID}/${user_name}/`hostname`")
+if [ -n "${out}" ]; then
+    echo "# Keys assigned remotely for user/machine identifier"
+    echo "${out}"
+fi
+
+# Global
+if [ -f "/etc/security/authorized_users" ] ; then
+	while read line; do
+		out=$(curl ${curl_opts} -sf "https://${GATEWAY_HOST}/authorizedKeys/${line}")
+		if [ -n "${out}" ]; then
+            echo "# Keys for globally authorized user ${line}"
+			echo "${out}"
+		fi
+	done < "/etc/security/authorized_users"
+fi

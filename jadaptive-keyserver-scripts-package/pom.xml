@@ -1,0 +1,214 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<packaging>pom</packaging>
+
+	<parent>
+		<groupId>com.sshtools</groupId>
+		<artifactId>mobile-agent-group</artifactId>
+		<relativePath>..</relativePath>
+		<version>2.0.0-SNAPSHOT</version>
+	</parent>
+	
+	<artifactId>jadaptive-keyserver-scripts</artifactId>
+	<name>JADAPTIVE Keyserver Scripts Package (DEB,RPM)</name>
+	
+	<properties>
+		<!-- Should be set by Jenkins when building for specific major version -->
+		<stagingRepositoryLocation>${basedir}/staging</stagingRepositoryLocation>
+		<stagingRepositoryTarget>testing99</stagingRepositoryTarget>
+		<stagingRepositoryName>testing2x</stagingRepositoryName>
+
+		<debianPackageVersion>${project.version}</debianPackageVersion>
+		<debianPackageName>jadaptive-keyserver-scripts</debianPackageName>
+	</properties>
+
+	<!-- http://stackoverflow.com/questions/9115765/is-it-possible-to-use-maven-buildnumber-plugin-to-generate-build-number-without -->
+	<scm>
+		<connection>scm:svn:http://127.0.0.1/dummy</connection>
+		<developerConnection>scm:svn:https://127.0.0.1/dummy</developerConnection>
+		<tag>HEAD</tag>
+		<url>http://127.0.0.1/dummy</url>
+	</scm>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>2.9</version>
+				<executions>
+					<execution>
+						<id>depcopy</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy-dependencies</goal>
+						</goals>
+						<configuration>
+							<stripVersion>true</stripVersion>
+							<outputDirectory>${project.build.directory}/dependency</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<artifactId>jdeb</artifactId>
+				<groupId>org.vafer</groupId>
+				<version>1.2</version>
+				<executions>
+					<execution>
+						<!-- First a Deb for Debian and based systems such as Ubuntu, Mint -->
+						<id>core-package</id>
+						<phase>package</phase>
+						<goals>
+							<goal>jdeb</goal>
+						</goals>
+						<configuration>
+							<skipPOMs>false</skipPOMs>
+							<attach>false</attach>
+							<controlDir>${project.basedir}/src/deb/control</controlDir>
+							<installDir>/usr/bin</installDir>
+							<deb>${project.basedir}/target/${debianPackageName}-${debianPackageVersion}.deb</deb>
+							<dataSet>
+								<data>
+									<type>directory</type>
+									<src>${basedir}/src/scripts</src>
+									<includes>*</includes>
+									<mapper>
+										<type>perm</type>
+										<strip>1</strip>
+										<prefix>/usr/bin</prefix>
+										<user>root</user>
+										<group>root</group>
+										<filemode>755</filemode>
+									</mapper>
+								</data>
+								<data>
+									<type>directory</type>
+									<src>${basedir}/src/etc/default</src>
+									<includes>*</includes>
+									<mapper>
+										<type>perm</type>
+										<strip>1</strip>
+										<prefix>/etc/default</prefix>
+										<user>root</user>
+										<group>root</group>
+										<filemode>644</filemode>
+									</mapper>
+								</data>
+							</dataSet>
+						</configuration>
+					</execution>
+				</executions>
+
+			</plugin>
+			
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>rpm-maven-plugin</artifactId>
+				<version>2.2.0</version>
+				<extensions>true</extensions>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>attached-rpm</goal>
+						</goals>
+						<configuration>
+						</configuration>
+					</execution>
+				</executions>
+				<configuration>
+					<sourceEncoding>UTF-8</sourceEncoding>
+					<name>jadaptive-keyserver-scripts</name>
+					<group>Application/Internet</group>
+					<packager>JADAPTIVE Limited</packager>
+					<copyright>2020 JADAPTIVE Limited</copyright>
+					<prefix>/usr</prefix>
+					<defineStatements>
+						<defineStatement>_unpackaged_files_terminate_build 0</defineStatement>
+					</defineStatements>
+
+					<requires>
+						<require>openssh-server &gt;= 6.9</require>
+						<require>curl &gt;= 6.0</require>
+					</requires>
+					<mappings>
+						<mapping>
+							<directory>/usr/bin</directory>
+							<filemode>755</filemode>
+							<username>root</username>
+							<groupname>root</groupname>
+							<directoryIncluded>false</directoryIncluded>
+							<sources>
+								<source>
+									<location>${basedir}/src/scripts/keyserver-user</location>
+								</source>
+								<source>
+									<location>${basedir}/src/scripts/keyserver-authorized-keys</location>
+								</source>
+								<source>
+									<location>${basedir}/src/scripts/keyserver-sync</location>
+								</source>
+							</sources>
+						</mapping>
+						<mapping>
+							<directory>/etc/default</directory>
+							<filemode>644</filemode>
+							<username>root</username>
+							<groupname>root</groupname>
+							<configuration>true</configuration>
+							<directoryIncluded>false</directoryIncluded>
+							<sources>
+								<source>
+									<location>${basedir}/src/etc/default/jadaptive-keyserver</location>
+								</source>
+							</sources>
+						</mapping>
+					</mappings>
+					
+					<postinstallScriptlet>
+						<scriptFile>src/rpm/postinstall.sh</scriptFile>
+						<fileEncoding>utf-8</fileEncoding>
+						<filter>true</filter>
+					</postinstallScriptlet>
+					
+					<preremoveScriptlet>
+						<scriptFile>src/rpm/preremove.sh</scriptFile>
+						<fileEncoding>utf-8</fileEncoding>
+						<filter>true</filter>
+					</preremoveScriptlet>
+				</configuration>
+
+			</plugin>
+
+
+			<!-- Copy the package to incoming and update the staging repository -->
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.8</version>
+				<executions>
+					<execution>
+						<phase>deploy</phase>
+						<configuration>
+							<target>
+								<!-- Copy our new package to the incoming directory -->
+								<mkdir
+									dir="${stagingRepositoryLocation}/${stagingRepositoryTarget}/incoming/${stagingRepositoryName}" />
+								<copy
+									file="target/${debianPackageName}-${debianPackageVersion}.deb"
+									todir="${stagingRepositoryLocation}/${stagingRepositoryTarget}/incoming/${stagingRepositoryName}" />
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>

@@ -1,0 +1,9 @@
+Package: jadaptive-keyserver-scripts
+Version: [[debianPackageVersion]]
+Section: misc
+Priority: optional
+Architecture: all
+Depends: curl, openssh-server, debconf
+Maintainer: JADAPTIVE Limited <support@jadaptive.com>
+Description: Use the JADAPTIVE Key Server to supply authorized keys for your SSH incoming connections.
+Distribution: development
