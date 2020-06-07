@@ -23,7 +23,7 @@ set -e
 case "$1" in
     configure)
 		
-    echo "# DO NOT CHANGE\nMACHINE_ID=`mktemp -u XXXXXXXXXXXXXXXXXXXXXXXX`" >> /etc/default/jadaptive-keyserver
+    echo "\n\n# DO NOT CHANGE\nMACHINE_ID=`mktemp -u XXXXXXXXXXXXXXXXXXXXXXXX`" >> /etc/default/jadaptive-keyserver
       
 	version_raw=`ssh -V 2>&1`
 	major_version=`echo "${version_raw}" | sed 's/^.*_\([0-9]\)\.[0-9].*$/\1/'`
