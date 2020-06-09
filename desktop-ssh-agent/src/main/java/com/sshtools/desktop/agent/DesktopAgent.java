@@ -2151,7 +2151,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		
 		JsonConnection con;
 		
-		if(connections.containsKey(name)) {
+		if(connections.containsKey(name) && (Objects.nonNull(oldName) && !oldName.equals(name))) {
 			throw new IOException(String.format("A connection named %s already exists!", name));
 		}
 		
