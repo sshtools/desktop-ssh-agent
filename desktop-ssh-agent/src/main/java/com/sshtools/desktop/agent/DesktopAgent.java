@@ -317,6 +317,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		shell.dispose();
 		display.dispose();
 
+		System.exit(0);
 	}
 
 	public String getAgentSocketPath() {
