@@ -114,6 +114,18 @@ public class MobileDeviceKeystore implements KeyStore {
 		try {
 			verifyClient();
 			
+			client.doGet("/ping");
+			return true;
+		} catch (Throwable e) {
+			return false;
+		}
+	}
+	
+	public boolean verify() {
+		
+		try {
+			verifyClient();
+			
 			JsonResponse response = client.doPost("api/agent/check",
 					JsonResponse.class, 
 					agent.generateAuthorizationParameters());
