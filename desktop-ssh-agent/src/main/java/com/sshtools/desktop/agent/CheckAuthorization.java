@@ -19,17 +19,12 @@
 package com.sshtools.desktop.agent;
 
 import java.io.IOException;
-import java.util.Base64;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.hypersocket.json.JsonClient;
 import com.hypersocket.json.JsonResponse;
-import com.hypersocket.json.RequestParameter;
-import com.hypersocket.json.utils.HypersocketUtils;
 import com.sshtools.common.logger.Log;
-import com.sshtools.common.publickey.SshKeyUtils;
-import com.sshtools.common.ssh.components.SshKeyPair;
 
 public class CheckAuthorization extends AbstractAgentProcess {
 

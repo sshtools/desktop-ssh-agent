@@ -24,7 +24,6 @@ import com.sshtools.client.SshClient;
 import com.sshtools.client.SshClientContext;
 import com.sshtools.common.ssh.ChannelOpenException;
 import com.sshtools.common.ssh.SshException;
-import com.sshtools.common.ssh.components.jce.JCEComponentManager;
 import com.sshtools.desktop.agent.DesktopAgent;
 import com.sshtools.desktop.agent.JsonConnection;
 import com.sshtools.terminal.emulation.Terminal;

@@ -70,7 +70,7 @@ public class AbstractAgentProcess {
 		
 		Properties properties = loadProperties();
 		
-		hostname = properties.getProperty("hostname", "gateway.sshtools.com");
+		hostname = properties.getProperty("hostname", "gateway.jadaptive.com");
 		port = Integer.parseInt(properties.getProperty("port", "443"));
 		strictSSL = Boolean.parseBoolean(properties.getProperty("strictSSL", "true"));
 		username = properties.getProperty("username");

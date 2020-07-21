@@ -60,7 +60,7 @@ public class DeauthorizeAgent extends AbstractAgentProcess {
 				
 				saveProperty("authorization", "");
 				saveProperty("username", "");
-				saveProperty("hostname", "gateway.sshtools.com");
+				saveProperty("hostname", "gateway.jadaptive.com");
 				saveProperty("port", String.valueOf(443));
 				saveProperty("strictSSL", String.valueOf(true));
 				saveProperty("deviceName", "");
