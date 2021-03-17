@@ -256,7 +256,7 @@ public class MobileDeviceKeystore implements KeyStore {
 			
 			Map<SshPublicKey, String> deviceKeys = getDeviceKeys();
 			if(deviceKeys.containsKey(pubkey)) {
-				Log.error(String.format("The key %s is already installed as a device key", pubkey.getFingerprint()));
+				Log.error("The key {} is already installed as a device key", pubkey.getFingerprint());
 				return false;
 			}
 			if(listener!=null) {
@@ -276,7 +276,7 @@ public class MobileDeviceKeystore implements KeyStore {
 		try {
 			Map<SshPublicKey, String> deviceKeys = getDeviceKeys();
 			if(deviceKeys.containsKey(pair.getPublicKey())) {
-				Log.error(String.format("The key %s is already installed as a device key", pair.getPublicKey().getFingerprint()));
+				Log.error("The key {} is already installed as a device key", pair.getPublicKey().getFingerprint());
 				return false;
 			}
 			
@@ -360,7 +360,7 @@ public class MobileDeviceKeystore implements KeyStore {
 		String payload = Base64.getUrlEncoder().encodeToString(data);
 		
 		if(Log.isInfoEnabled()) {
-			Log.info(String.format("Performing sign operation for %s with payload %s", pubkey.getFingerprint(), payload));
+			Log.info("Performing sign operation for {} with payload {}", pubkey.getFingerprint(), payload);
 		}
 		
 		try {
@@ -372,18 +372,18 @@ public class MobileDeviceKeystore implements KeyStore {
 						new RequestParameter("payload", payload)));
 				
 			if(Log.isInfoEnabled()) {
-				Log.info("Received response from %s", pubkey.getFingerprint());
+				Log.info("Received response from {}", pubkey.getFingerprint());
 			}
 			
 			if(request.isSuccess()) {
 				if(Log.isInfoEnabled()) {
-					Log.info(String.format("Received sign operation for %s with response %s", pubkey.getFingerprint(), request.getSignature()));
+					Log.info("Received sign operation for {} with response {}", pubkey.getFingerprint(), request.getSignature());
 				}
 				return Base64.getUrlDecoder().decode(request.getSignature());
 			}
 			
 			if(Log.isInfoEnabled()) {
-				Log.info("Received  failed response from %s", pubkey.getFingerprint());
+				Log.info("Received  failed response from {}", pubkey.getFingerprint());
 			}
 			
 			throw new SshException("Remote response returned unknown failure",

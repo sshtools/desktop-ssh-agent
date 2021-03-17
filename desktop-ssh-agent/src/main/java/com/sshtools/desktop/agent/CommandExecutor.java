@@ -74,7 +74,7 @@ public class CommandExecutor {
 				builder.append(' ');
 			}
 			
-			Log.info("Executing command: " + builder.toString().trim());
+			Log.info("Executing command: {}", builder.toString().trim());
 		}
 		pb = new ProcessBuilder(args);
 		
@@ -102,7 +102,7 @@ public class CommandExecutor {
 		}
 		
 		if(Log.isDebugEnabled()) {
-			Log.debug("Command output: " + buffer.toString());
+			Log.debug("Command output: {}", buffer.toString());
 		}
 		
 		return exitCode;

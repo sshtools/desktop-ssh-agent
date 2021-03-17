@@ -36,11 +36,11 @@ import com.sshtools.agent.client.SshAgentClient;
 import com.sshtools.agent.exceptions.AgentNotAvailableException;
 import com.sshtools.client.AbstractKeyboardInteractiveCallback;
 import com.sshtools.client.ClientAuthenticator;
+import com.sshtools.client.ExternalKeyAuthenticator;
 import com.sshtools.client.KeyboardInteractiveAuthenticator;
 import com.sshtools.client.KeyboardInteractivePrompt;
 import com.sshtools.client.KeyboardInteractivePromptCompletor;
 import com.sshtools.client.PasswordAuthenticator;
-import com.sshtools.client.PublicKeyAuthenticator;
 import com.sshtools.client.SessionChannelNG;
 import com.sshtools.client.SshClient;
 import com.sshtools.client.SshClientContext;
@@ -162,7 +162,7 @@ public abstract class AbstractTerminalConnector {
 
 			boolean success = false;
 			if(!agent.listKeys().isEmpty()) {
-				success = ssh.authenticate(new PublicKeyAuthenticator(agent), 30000);
+				success = ssh.authenticate(new ExternalKeyAuthenticator(agent), 30000);
 			}
 		
 			if(!success) {

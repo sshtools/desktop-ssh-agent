@@ -370,11 +370,11 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 
 				if(!deletedConnections.containsKey(con.getName())) {
 					if(Log.isInfoEnabled()) {
-						Log.info("Added connection %s@%s:%d (%d)", con.getUsername(), con.getHostname(), con.getPort(), con.getId());
+						Log.info("Added connection {}@{}:{} ({})", con.getUsername(), con.getHostname(), con.getPort(), con.getId());
 					}
 				} else {
 					if(Log.isInfoEnabled()) {
-						Log.info("Existing connection %s@%s:%d (%d)", con.getUsername(), con.getHostname(), con.getPort(), con.getId());
+						Log.info("Existing connection {}@{}:{} ({})", con.getUsername(), con.getHostname(), con.getPort(), con.getId());
 					}					
 				}
 				
@@ -556,8 +556,8 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 //		}
 //
 //		if(Log.isInfoEnabled()) {
-//			Log.info(String.format("System tray initialised imageSize=%d menuSize=%d", systemTray.getTrayImageSize(),
-//					systemTray.getMenuImageSize()));
+//			Log.info("System tray initialised imageSize={} menuSize={}", systemTray.getTrayImageSize(),
+//					systemTray.getMenuImageSize());
 //		}
 //
 //		systemTray.setImage(getClass().getResourceAsStream(Settings.getInstance().getUseDarkIcon() 
@@ -625,7 +625,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 	public void addFavoriteConnection(JsonConnection con) {
 
 		if(Log.isInfoEnabled()) {
-			Log.info("Adding to favorite connections %s@%s:%d (%d)", con.getUsername(), con.getHostname(), con.getPort(), con.getId());
+			Log.info("Adding to favorite connections {}@{}:{} ({})", con.getUsername(), con.getHostname(), con.getPort(), con.getId());
 		}
 		
 //		if(dorkboxConnections!=null) {
@@ -701,7 +701,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		if(Settings.getInstance().getUseBuiltInTerminal()) {
 			
 			if(Log.isInfoEnabled()) {
-				Log.info("Launching built-in client%s@%s:%d", username, hostname, port);
+				Log.info("Launching built-in client {}@{}:{}", username, hostname, port);
 			}
 			
 			SWTUtil.safeAsyncExec(new Runnable() {
@@ -714,7 +714,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			if(StringUtils.isNotBlank(Settings.getInstance().getTerminalCommand()))  {
 				
 				if(Log.isInfoEnabled()) {
-					Log.info("Launching configured client %s@%s:%d", username, hostname, port);
+					Log.info("Launching configured client {}@{}:{}", username, hostname, port);
 				}
 				
 				new Thread() {
@@ -756,7 +756,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 	private void launchWindowsClient(String hostname, int port, String username) {
 		
 		if(Log.isInfoEnabled()) {
-			Log.info("Launching Windows client %s@%s:%d", username, hostname, port);
+			Log.info("Launching Windows client {}@{}:{}", username, hostname, port);
 		}
 		
 		new Thread() {
@@ -789,7 +789,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 	private void launchOSXClient(String hostname, int port, String username) {
 		
 		if(Log.isInfoEnabled()) {
-			Log.info("Launching OSX client %s@%s:%d", username, hostname, port);
+			Log.info("Launching OSX client {}@{}:{}", username, hostname, port);
 		}
 		
 		new Thread() {
@@ -813,7 +813,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		this.quiting = true;
 		
 		if(Log.isInfoEnabled()) {
-			Log.info("Quitting (%b)", killSWT);
+			Log.info("Quitting ({})", killSWT);
 		}
 		
 		Thread t = new Thread("Close-Agent-Thread") {
@@ -1765,7 +1765,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 	public boolean addKey(SshPrivateKey prvkey, SshPublicKey pubkey, String description, KeyConstraints cs)
 			throws IOException {
 
-		Log.info("Adding key %s", description);
+		Log.info("Adding key {}", description);
 
 		ImportKey importKey = new ImportKey(null, prvkey, pubkey, description, cs);
 		display.syncExec(importKey);
@@ -2059,7 +2059,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		synchronized (deviceKeys) {
 			deviceKeys.clear();
 			deviceKeys.putAll(keystore.getDeviceKeys());
-			Log.info("Got %d device keys", deviceKeys.size());
+			Log.info("Got {} device keys", deviceKeys.size());
 		}
 	}
 	
