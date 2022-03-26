@@ -40,9 +40,6 @@ import org.apache.commons.lang3.StringUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hypersocket.json.JsonClient;
-import com.hypersocket.json.JsonPrivateKey;
-import com.hypersocket.json.JsonPrivateKeyList;
-import com.hypersocket.json.JsonResourceStatus;
 import com.hypersocket.json.JsonResponse;
 import com.hypersocket.json.JsonStatusException;
 import com.hypersocket.json.RequestParameter;
@@ -114,7 +111,7 @@ public class MobileDeviceKeystore implements KeyStore {
 		try {
 			verifyClient();
 			
-			client.doGet("/ping");
+			client.doGet("api/server/ping");
 			return true;
 		} catch (Throwable e) {
 			return false;
@@ -126,9 +123,7 @@ public class MobileDeviceKeystore implements KeyStore {
 		try {
 			verifyClient();
 			
-			JsonResponse response = client.doPost("api/agent/check",
-					JsonResponse.class, 
-					agent.generateAuthorizationParameters());
+			JsonResponse response = client.doPost("api/server/ping", JsonResponse.class);
 					
 			return response.isSuccess();
 		} catch (Throwable e) {
@@ -165,21 +160,24 @@ public class MobileDeviceKeystore implements KeyStore {
 	
 	public Map<SshPublicKey, String> getDeviceKeys() {
 		
-		if(StringUtils.isAnyBlank(agent.getUsername(), agent.getAuthorizationToken())) {
+		if(StringUtils.isAnyBlank(agent.getUsername(), agent.getHostname())) {
 			return Collections.emptyMap();
 		}
 		
  		Map<SshPublicKey, String> results = new HashMap<>();
 		
 		try(InputStream in = IOUtils.toInputStream(
-				getClient().doGet("/authorizedKeys/" + agent.getUsername()), "UTF-8")) {
+				getClient().doGet("api/authenticator/authorizedKeys/" + agent.getUsername()), "UTF-8")) {
 			
 			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 			String key;
 			while((key = reader.readLine())!=null) {
+				if(key.trim().startsWith("#")) {
+					continue;
+				}
 				SshPublicKeyFile kf = SshPublicKeyFileFactory.parse(key.getBytes("UTF-8"));
 				SshPublicKey pub = kf.toPublicKey();
-				results.put(pub, kf.getComment());
+				results.put(pub, StringUtils.defaultIfBlank(kf.getComment(), "LogonBox Key"));
 			}
 			
 		} catch(JsonStatusException e) { 
@@ -364,12 +362,13 @@ public class MobileDeviceKeystore implements KeyStore {
 		}
 		
 		try {
-			JsonSignRequestStatus request = getClient().doPost("api/agent/signPayload", JsonSignRequestStatus.class,
-					agent.generateAuthorizationParameters(
-						new RequestParameter("flags", String.valueOf(flags)),
-						new RequestParameter("fingerprint", pubkey.getFingerprint()),
-						new RequestParameter("remoteName", agent.getDeviceName()),
-						new RequestParameter("payload", payload)));
+			JsonSignRequestStatus request = getClient().doPost("api/authenticator/signPayload", JsonSignRequestStatus.class,
+					new RequestParameter("username", agent.getUsername()),
+					new RequestParameter("remoteName", "Desktop Agent"),
+					new RequestParameter("authorizeText", "Login"),
+					new RequestParameter("flags", String.valueOf(flags)),
+					new RequestParameter("fingerprint", pubkey.getFingerprint()),
+					new RequestParameter("payload", payload));
 				
 			if(Log.isInfoEnabled()) {
 				Log.info("Received response from {}", pubkey.getFingerprint());
@@ -430,57 +429,6 @@ public class MobileDeviceKeystore implements KeyStore {
 		if(listener!=null) {
 			listener.onKeysChanged();
 		}
-	}
-
-	public void deleteDeviceKey(SshPublicKey key) throws IOException, JsonStatusException {
-		doDeleteDeviceKeys(key);
-	}
-	
-	public void deleteDeviceKeys() throws IOException, JsonStatusException {
-		doDeleteDeviceKeys(getDeviceKeys().keySet().toArray(new SshPublicKey[0]));
-	}
-	
-	private void doDeleteDeviceKeys(SshPublicKey... keys) throws IOException, JsonStatusException {
-		
-		verifyClient();
-		
-		JsonPrivateKeyList results = client.doPost("api/userPrivateKeys/personal", 
-				JsonPrivateKeyList.class,
-				agent.generateAuthorizationParameters());
-
-        if(!results.isSuccess()) {
-            throw new IOException(results.getError());
-        }
-        
-        Map<SshPublicKey, Long> ids = new HashMap<SshPublicKey, Long>();
-        
-		for(SshPublicKey key : keys) {
-			for(JsonPrivateKey jsonKey : results.getResources()) {
-    			if(jsonKey.getFingerprint().equals(SshKeyUtils.getFingerprint(key))) {
-    				ids.put(key, jsonKey.getId());
-    				break;
-    			}
-			}
-		}
-        
-		for(Map.Entry<SshPublicKey,Long> entry : ids.entrySet()) {
-			try {
-    			client.doDelete("api/userPrivateKeys/key/" + entry.getValue().toString(), 
-    					JsonResourceStatus.class,
-    					agent.generateAuthorizationParameters(new RequestParameter("fromDevice", "false")));
-	        } catch(JsonStatusException e) {
-	            if(e.getStatusCode()==404) {
-	                continue;
-	            }
-	            throw e;
-	        }
-    		
-		}
-        
-        if(listener!=null) {
-        		listener.onKeysChanged();
-        }
-	        
 	}
 
 	public boolean isDeviceKey(SshPublicKey key) {
@@ -560,23 +508,8 @@ public class MobileDeviceKeystore implements KeyStore {
 
 	public void deleteConnection(JsonConnection con) throws IOException {
 		
-		verifyClient();
-		
 		localConnections.remove(con);
-
-		try {
-			if(Objects.nonNull(con.getId()) && ping()) {
-							
-				try {
-					client.doDelete("api/serverConnections/delete/" + con.getId(), JsonResourceStatus.class,
-							agent.generateAuthorizationParameters());
-				} catch(JsonStatusException e) {
-			        throw new IOException(e.getMessage(), e);
-				}
-			}
-		} finally {
-			saveCachedConnections();
-		}
+		saveCachedConnections();
 		
 	}
 

@@ -18,8 +18,6 @@
  */
 package com.sshtools.desktop.agent.swt;
 
-import java.io.IOException;
-
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
@@ -35,13 +33,12 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TabFolder;
 import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Text;
 
-import com.sshtools.common.logger.Log;
-import com.sshtools.desktop.agent.AuthorizeAgent;
 import com.sshtools.desktop.agent.DesktopAgent;
 import com.sshtools.desktop.agent.Settings;
 import com.sshtools.desktop.agent.Settings.IconMode;
@@ -107,18 +104,18 @@ public class SettingsDialog extends Dialog {
         GridData data = new GridData(GridData.FILL_HORIZONTAL);
         data.widthHint = 600;
     
-		final TabFolder tabFolder = new TabFolder(shell, SWT.BORDER);
+		final TabFolder tabFolder = new TabFolder(shell, SWT.NONE);
 		tabFolder.setLayoutData(data);
 		
-		TabItem tabTerminal = new TabItem(tabFolder, SWT.NULL);
+		TabItem tabTerminal = new TabItem(tabFolder, SWT.NONE);
 		tabTerminal.setText("Terminal");
 		tabTerminal.setControl(new TerminalPreferencePanel(tabFolder));
 	
-		TabItem tabAccount = new TabItem(tabFolder, SWT.NULL);
-		tabAccount.setText("Account");
+		TabItem tabAccount = new TabItem(tabFolder, SWT.NONE);
+		tabAccount.setText("Authenticator");
 		tabAccount.setControl(new AccountPreferencePanel(tabFolder));
 		
-		TabItem tabUI = new TabItem(tabFolder, SWT.NULL);
+		TabItem tabUI = new TabItem(tabFolder, SWT.NONE);
 		tabUI.setText("User Interface");
 		tabUI.setControl(new UserInterfacePreferencePanel(tabFolder));
 		
@@ -145,8 +142,14 @@ public class SettingsDialog extends Dialog {
 			Settings.getInstance().setTerminalCommand(terminalCommand.getText());
 			Settings.getInstance().setTerminalArguments(terminalArguments.getText());
 			Settings.getInstance().save();
+			
+			agent.saveProperties(username.getText(), 
+					hostname.getText(),
+					Integer.parseInt(port.getText()),
+					!strictSSL.getSelection());
+						
 			agent.resetIcon();
-		} catch (IOException e) {
+		} catch (Throwable e) {
 			SWTUtil.showError("Preferences", 
 					String.format("Could not save preferences!\r\n%s",e.getMessage()));
 		}
@@ -160,89 +163,34 @@ public class SettingsDialog extends Dialog {
 		    layout.marginBottom = layout.marginTop = layout.marginLeft = layout.marginRight = 8;
 			this.setLayout(layout);
 			
-			boolean authorized = !StringUtils.isBlank(agent.getAuthorizationToken());
+			Link linkButton = new Link(this, SWT.WRAP);
+			linkButton.setText("Connect your <a href=\"https://www.logonbox.com/content/logonbox-authenticator\">LogonBox Authenticator</a> app to use LogonBox credentials to log into your SSH services.");
 			
-			new Label(this, SWT.NONE).setText("Email Address");
+			new Label(this, SWT.NONE).setText("Account Name");
 		    
 		    username = new Text(this, SWT.SINGLE | SWT.BORDER);
 		    username.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		    username.setText(StringUtils.defaultString(agent.getUsername()));
-		    username.setEnabled(!authorized);
 		    
-		    new Label(this, SWT.NONE).setText("Device Name");
-		    
-		    deviceName = new Text(this, SWT.SINGLE | SWT.BORDER);
-		    deviceName.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		    deviceName.setText(StringUtils.defaultString(agent.getDeviceName()));
-		    deviceName.setEnabled(!authorized);
-		    
-		    new Label(this, SWT.NONE).setText("Gateway Hostname");
+		    new Label(this, SWT.NONE).setText("Hostname");
 		    
 		    hostname = new Text(this, SWT.SINGLE | SWT.BORDER);
 		    hostname.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		    hostname.setText(StringUtils.defaultString(agent.getHostname()));
-		    hostname.setEnabled(!authorized);
 		    
-		    new Label(this, SWT.NONE).setText("Gateway Port");
+		    new Label(this, SWT.NONE).setText("Port");
 		    
 		    port = new Text(this, SWT.SINGLE | SWT.BORDER);
 		    port.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		    port.setText(String.valueOf(agent.getPort()));
-		    port.setEnabled(!authorized);
 		    new Label(this, SWT.NONE);
 		    
 		    strictSSL = new Button(this, SWT.CHECK);
 		    strictSSL.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		    strictSSL.setSelection(!agent.isStrictSSL());
 		    strictSSL.setText("Allow self-signed certificates and invalid hostnames.");
-		    strictSSL.setEnabled(!authorized);
 		    new Label(this, SWT.NONE);
-		    
-		    authorize = new Button(this, SWT.PUSH);
-		    authorize.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_BEGINNING));
-		    authorize.setText(!authorized ? "Authorize" : "Reauthorize");
-		    
-		    authorize.addSelectionListener(new SelectionAdapter() {
-				
-				@Override
-				public void widgetSelected(SelectionEvent e) {
-					
-					String _username = username.getText();
-					String _deviceName = deviceName.getText();
-					String _hostname = hostname.getText();
-					int _port = Integer.parseInt(port.getText());
-					boolean _strict = !strictSSL.getSelection();
-					
-					new Thread() {
-						public void run() {
-	
-							try {
-								new AuthorizeAgent().authorize(_username,
-										_deviceName,
-										_hostname,
-										_port,
-										_strict,
-										true,
-										true);
-
-								SWTUtil.showInformation("Authorize",
-										"The application will now be restarted.",
-										new Runnable() {
-										public void run() {
-											agent.restartApplication();
-										}
-								});
-							
-							} catch(IOException t) {
-								Log.error("Authorization command failed", t);
-								SWTUtil.showError("Authorize", t.getMessage());
-							}
-
-						}
-					}.start();
-
-				}
-			});
+		   
 		}
 	}
 	

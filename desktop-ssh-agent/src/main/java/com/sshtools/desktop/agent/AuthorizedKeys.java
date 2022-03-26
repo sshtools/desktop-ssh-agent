@@ -36,7 +36,7 @@ public class AuthorizedKeys extends AbstractAgentProcess {
 		client.setPath("/app");
 		
 		try(InputStream in = IOUtils.toInputStream(
-				client.doGet("/authorizedKeys/" + username), "UTF-8")) {
+				client.doGet("api/authenticator/authorizedKeys/" + username), "UTF-8")) {
 			
 			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 			String key;

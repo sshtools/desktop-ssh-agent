@@ -30,10 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
-import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -41,13 +38,9 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.hypersocket.json.JsonClient;
 import com.hypersocket.json.JsonStatusException;
-import com.hypersocket.json.RequestParameter;
-import com.hypersocket.json.utils.HypersocketUtils;
 import com.sshtools.common.logger.Log;
-import com.sshtools.common.publickey.InvalidPassphraseException;
 import com.sshtools.common.publickey.SshKeyUtils;
 import com.sshtools.common.ssh.SshException;
-import com.sshtools.common.ssh.components.SshKeyPair;
 import com.sshtools.common.ssh.components.SshPublicKey;
 
 public class AbstractAgentProcess {
@@ -60,29 +53,21 @@ public class AbstractAgentProcess {
 	protected int port;
 	protected boolean strictSSL;
 	protected String username;
-	protected String authorization;
-	protected String deviceName;
-	protected String password;
-	protected String privateKey;
-	protected String publicKey;
+
 	
 	protected AbstractAgentProcess() throws IOException {
 		
 		Properties properties = loadProperties();
 		
-		hostname = properties.getProperty("hostname", "gateway.jadaptive.com");
+		hostname = properties.getProperty("hostname", "");
 		port = Integer.parseInt(properties.getProperty("port", "443"));
 		strictSSL = Boolean.parseBoolean(properties.getProperty("strictSSL", "true"));
 		username = properties.getProperty("username");
-		authorization = properties.getProperty("authorization");
-		deviceName = properties.getProperty("deviceName");
-		privateKey = properties.getProperty("privateKey");
-		publicKey = properties.getProperty("publicKey");
 		
 	}
 	
 	protected boolean isAuthorized() {
-		return !StringUtils.isAnyBlank(hostname, authorization, privateKey, username, deviceName, publicKey);
+		return !StringUtils.isAnyBlank(hostname, username);
 	}
 	
 	protected Properties loadProperties() throws IOException {
@@ -101,6 +86,32 @@ public class AbstractAgentProcess {
 		} catch(FileNotFoundException ex) { 	
 		}
 		return properties;
+	}
+	
+	public void saveProperties(String accountName, String hostname, int port, boolean strictSSL) throws IOException {
+	
+		Properties properties = loadProperties();
+		
+		this.hostname = hostname;
+		this.port = port;
+		this.username = accountName;
+		this.strictSSL = strictSSL;
+		
+		properties.setProperty("hostname", hostname);
+		properties.setProperty("port", String.valueOf(port));
+		properties.setProperty("strictSSL", String.valueOf(strictSSL));
+		properties.setProperty("username", accountName);
+		
+		FileOutputStream out = new FileOutputStream(agentProperties);
+		try {
+			properties.store(out, "Saved by agent process");
+		} finally {
+			out.close();
+		}
+		
+		checkFilePermissions(agentProperties.toPath());
+		
+		loadProperties();
 	}
 	
 	protected void saveProperty(String name, String value) throws IOException {
@@ -193,10 +204,6 @@ public class AbstractAgentProcess {
 	public String getUsername() {
 		return username;
 	}
-
-	public String getDeviceName() {
-		return deviceName;
-	}
 	
 	protected byte[] generateToken(String deviceName, String principalName, String key, String previousToken) throws UnsupportedEncodingException {
 		
@@ -238,29 +245,6 @@ public class AbstractAgentProcess {
 		
 		if(!k.verifySignature(Base64.getUrlDecoder().decode(authorization), data)) {
 			throw new IOException("Invalid signature in authorization response");
-		}
-	}
-	
-	protected RequestParameter[] generateAuthorizationParameters(RequestParameter...parameters) throws IOException {
-		List<RequestParameter> params = new ArrayList<RequestParameter>(Arrays.asList(parameters));
-		
-		try {
-			SshKeyPair pair = SshKeyUtils.getPrivateKey(privateKey, "");	
-			long timestamp = System.currentTimeMillis();
-	
-			byte[] auth = generateAuthorization(1, timestamp, 
-					authorization, getUsername());
-			String signature = Base64.getUrlEncoder().encodeToString(pair.getPrivateKey().sign(auth));
-			
-			params.add(new RequestParameter("version", "1"));
-			params.add(new RequestParameter("timestamp", String.valueOf(timestamp)));
-			params.add(new RequestParameter("signature", signature));
-			params.add(new RequestParameter("username", getUsername()));
-			params.add(new RequestParameter("token", HypersocketUtils.checkNull(authorization)));
-	
-			return params.toArray(new RequestParameter[0]);
-		} catch(InvalidPassphraseException e) {
-			throw new IOException(e.getMessage(), e);
 		}
 	}
 }

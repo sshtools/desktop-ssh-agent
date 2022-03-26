@@ -18,22 +18,21 @@
     along with Desktop SSH Agent.  If not, see <https://www.gnu.org/licenses/>.
 
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<properties>
-		<swt.version>3.112.0</swt.version>
-	    <maven.compiler.source>1.8</maven.compiler.source>
-	    <maven.compiler.target>1.8</maven.compiler.target>
+		<swt.version>3.118.0</swt.version>
+		<maven.compiler.source>11</maven.compiler.source>
+		<maven.compiler.target>11</maven.compiler.target>
 	</properties>
-	
+
 	<parent>
 		<groupId>com.sshtools</groupId>
 		<artifactId>desktop-ssh-agent-group</artifactId>
-		<version>2.0.2</version>
+		<version>3.0.0-SNAPSHOT</version>
 	</parent>
-	
+
 	<name>Desktop SSH Agent</name>
 	<artifactId>desktop-ssh-agent</artifactId>
 
@@ -138,17 +137,17 @@
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-sshagent</artifactId>
-			<version>3.0.0-RC4</version>
+			<version>3.0.6</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-bc</artifactId>
-			<version>3.0.0-RC4</version>
+			<version>3.0.6</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-synergy-client</artifactId>
-			<version>3.0.0-RC4</version>
+			<version>3.0.6</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
@@ -181,11 +180,6 @@
 			<version>3.0.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
-			<groupId>com.sshtools</groupId>
-			<artifactId>universal-authenticator-api</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-text</artifactId>
 			<version>1.4</version>
@@ -211,7 +205,26 @@
 	</repositories>
 
 	<build>
-		
+		<plugins>
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.8</version>
+				<executions>
+					<execution>
+						<phase>install</phase>
+						<configuration>
+							<target>
+								<copy file="${project.build.directory}/${project.build.finalName}.jar" todir="${project.build.directory}/dist" />
+							</target>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+		</plugins>
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>

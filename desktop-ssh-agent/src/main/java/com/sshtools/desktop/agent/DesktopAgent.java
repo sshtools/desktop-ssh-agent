@@ -42,7 +42,6 @@ import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeSet;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -73,11 +72,6 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Tray;
 import org.eclipse.swt.widgets.TrayItem;
 
-import com.hypersocket.json.JsonClient;
-import com.hypersocket.json.JsonResourceStatus;
-import com.hypersocket.json.JsonStatusException;
-import com.hypersocket.json.RequestParameter;
-import com.hypersocket.json.utils.FileUtils;
 import com.sshtools.agent.InMemoryKeyStore;
 import com.sshtools.agent.KeyConstraints;
 import com.sshtools.agent.openssh.OpenSSHConnectionFactory;
@@ -194,7 +188,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 				public void run() {
 					try {
 						
-						boolean hasCredentials = !StringUtils.isAnyBlank(username, authorization, deviceName);
+						boolean hasCredentials = !StringUtils.isAnyBlank(hostname, username);
 						
 						if(hasCredentials) {
 							boolean wasOffline = !online.getAndSet(keystore.ping());
@@ -1774,9 +1768,6 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 
 	class ImportKey implements Runnable {
 
-		private static final String CANCEL = "Cancel";
-		private static final String USE_LOCALLY = "Use Locally";
-		private static final String SEND_TO_DEVICE = "Send To Device";
 		boolean ret;
 		SshPublicKey pubkey;
 		SshPrivateKey prvkey;
@@ -1794,27 +1785,6 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 
 		public void run() {
 			
-			if(isAuthorized()) {
-				CustomDialog dialog = new CustomDialog(new Shell(), SWT.ICON_QUESTION, 0,
-						SEND_TO_DEVICE, USE_LOCALLY, CANCEL);
-				dialog.setText("Import Key");
-				dialog.setMessage(String.format(
-						"You are adding the following key to the Desktop SSH Agent:\r\n\r\n%s\r\n\r\n"  + 
-				        "Do you want to store this permanently on your mobile device? You can also just use it locally on this computer.",
-						description));
-	
-				String result = dialog.open();
-				
-				if (result == SEND_TO_DEVICE) {
-					display.syncExec(new SendToDevice(this));
-					return;
-				} else if (result == CANCEL) {
-					ret = false;
-					return;
-				}
-			
-			}
-
 			SshKeyPair pair = new SshKeyPair();
 			pair.setPrivateKey(prvkey);
 			pair.setPublicKey(pubkey);
@@ -1837,61 +1807,6 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 
 		boolean isSuccess() {
 			return ret;
-		}
-	}
-
-	class SendToDevice implements Runnable {
-		
-		ImportKey importKey;
-		
-		SendToDevice(ImportKey importKey) {
-			this.importKey = importKey;
-		}
-		
-		public void run() {
-			
-			if(!online.get()) {
-				SWTUtil.showError("Import Key", "The gateway cannot be contacted to import the key.");
-				return;
-			}
-			
-			try {
-				JsonClient client = keystore.getClient();
-
-				InputForm input = new InputForm(display, "Name Required", "Please enter a name to identify this key.", FileUtils.lastPathElement(importKey.description), false);
-				
-				if(!input.show()) {
-					return;
-				}
-				String name = input.getInput();
-				SshKeyPair pair = new SshKeyPair();
-				pair.setPrivateKey(importKey.prvkey);
-				pair.setPublicKey(importKey.pubkey);
-				String uuid = UUID.randomUUID().toString();
-				SshPrivateKeyFile prv = SshPrivateKeyFileFactory.create(pair, 
-						uuid, 
-						SshPrivateKeyFileFactory.OPENSSH_FORMAT);
-
-		        JsonResourceStatus response = client.doPost("api/userPrivateKeys/importKey", JsonResourceStatus.class,
-		                generateAuthorizationParameters(new RequestParameter("name", name),
-		                new RequestParameter("type", "private"),
-		                new RequestParameter("deviceKey", "true"),
-		                new RequestParameter("passphrase", uuid),
-		                new RequestParameter("key", new String(prv.getFormattedKey()))));
-
-		        if(response.isSuccess()) {
-		        		Toast.toast(ToastType.INFO, "Import Key", response.getMessage());
-		        } else {
-		        		SWTUtil.showError("Import Key", response.getMessage());
-		        }
-				displayKeys();
-				importKey.ret = true;
-
-			} catch (IOException | JsonStatusException e) {
-				SWTUtil.showError("Add Key", e.getMessage());
-			} catch (IllegalStateException e) {
-				// Ignore
-			}
 		}
 	}
 	
@@ -1926,8 +1841,8 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 						YES_I_WANT_TO_DELETE_ALL_KEYS, DELETE_CANCEL);
 				dialog2.setText("Confirm Delete");
 				dialog2.setMessage(
-						"You are about to delete all keys from your account.\r\n"
-					   + "This includes keys that are stored exclusively on your mobile device.\r\n\r\n"
+						"You are about to delete all keys from this computer.\r\n"
+					   + "NOTE: This excludes keys that imported from your authenticator device.\r\n\r\n"
 					   + "Are you sure you want to do this?");
 
 				String result2 = dialog2.open();
@@ -1935,18 +1850,13 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 				if(result2 == YES_I_WANT_TO_DELETE_ALL_KEYS) {
 					
 					try {
-						
-						if(!online.get()) {
-							SWTUtil.showError("Delete Keys", "The gateway cannot be contacted to delete all keys.");
-							return;
-						}
-						keystore.deleteDeviceKeys();
+
 						
 						localKeys.deleteAllKeys();
 						Settings.getInstance().removeAllKeys();
 						ret = true;
 						
-					} catch (IOException | JsonStatusException e) {
+					} catch (IOException e) {
 						SWTUtil.showError("Delete Keys", e.getMessage());
 					}  catch(IllegalStateException  e) {
 						// Ignore
@@ -2002,13 +1912,8 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 						synchronized(deviceKeys) {
 							if(deviceKeys.containsKey(key)) {
 								
-								if(!online.get()) {
-									SWTUtil.showError("Delete Key", "The gateway cannot be contacted to delete the key.");
-									return;
-								}
-								
-								keystore.deleteDeviceKey(key);
-								
+								SWTUtil.showError("Delete Key", "You cannot delete keys from your authenticator device!");
+																
 							} else {
 								Settings.getInstance().removeTemporaryKey(key);
 								localKeys.deleteKey(key);
@@ -2019,7 +1924,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 							ret = true;
 						}
 						
-					} catch (IOException | JsonStatusException e) {
+					} catch (IOException e) {
 						SWTUtil.showError("Delete Key", e.getMessage());
 					}  catch(IllegalStateException  e) {
 						// Ignore
@@ -2057,9 +1962,13 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 
 	private void loadDeviceKeys() {
 		synchronized (deviceKeys) {
-			deviceKeys.clear();
-			deviceKeys.putAll(keystore.getDeviceKeys());
-			Log.info("Got {} device keys", deviceKeys.size());
+			try {
+				deviceKeys.clear();
+				deviceKeys.putAll(keystore.getDeviceKeys());
+				Log.info("Got {} device keys", deviceKeys.size());
+			} catch (Exception e) {
+				Log.error("Could not load device keys", e);
+			}
 		}
 	}
 	
@@ -2187,13 +2096,5 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 
 	public String getSocketPath() {
 		return agentSocketPath.toString();
-	}
-
-	public String getAuthorizationToken() {
-		return authorization;
-	}
-
-	public String getPrivateKey() {
-		return privateKey;
 	}
 }
