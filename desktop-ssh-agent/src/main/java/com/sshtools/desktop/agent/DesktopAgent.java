@@ -472,6 +472,8 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			swtConnections = new org.eclipse.swt.widgets.Menu(menu);
 			mConnections.setMenu(swtConnections);
 			
+			loadConnections();
+			
 			org.eclipse.swt.widgets.MenuItem mCreate = new org.eclipse.swt.widgets.MenuItem(menu, SWT.PUSH);
 			mCreate.setText("Connections");
 			mCreate.addListener(SWT.Selection, new Listener() {
