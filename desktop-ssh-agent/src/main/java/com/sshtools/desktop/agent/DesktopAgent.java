@@ -32,6 +32,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -323,9 +324,10 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		SWTUtil.safeAsyncExec(new Runnable() {
 			public void run() {
 				new SWTAboutDialog(display, "Close", "About",
-						new Image(display, DesktopAgent.class.getResourceAsStream("/new_icon.png")),
-						"Desktop SSH Agent", "Part of the JADAPTIVE Key Server solution.", "\u00a9 2003-2020 JADAPTIVE Limited",
-						"https://www.jadaptive.com");
+						new Image(display, DesktopAgent.class.getResourceAsStream("/new_icon_black.png")),
+						"Desktop SSH Agent", "A cross-platform SSH Key Agent and Connection Manager", 
+						String.format("\u00a9 2003-%d JADAPTIVE Limited", Calendar.getInstance().get(Calendar.YEAR)),
+						"https://jadaptive.com");
 			}
 		});
 
