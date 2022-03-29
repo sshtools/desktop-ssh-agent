@@ -23,7 +23,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.sshtools</groupId>
 	<artifactId>desktop-ssh-agent-group</artifactId>
-	<version>3.0.0-SNAPSHOT</version>
+	<version>3.0.0</version>
 	<name>Desktop SSH Agent</name>
 	<description>Cross Platform, open-source Desktop SSH Agent</description>
 	<url>http://www.jadaptive.com</url>

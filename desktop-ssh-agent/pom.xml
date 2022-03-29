@@ -30,7 +30,7 @@
 	<parent>
 		<groupId>com.sshtools</groupId>
 		<artifactId>desktop-ssh-agent-group</artifactId>
-		<version>3.0.0-SNAPSHOT</version>
+		<version>3.0.0</version>
 	</parent>
 
 	<name>Desktop SSH Agent</name>
@@ -223,7 +223,6 @@
 					</execution>
 				</executions>
 			</plugin>
-
 		</plugins>
 		<resources>
 			<resource>
