@@ -75,10 +75,10 @@ import org.eclipse.swt.widgets.TrayItem;
 
 import com.sshtools.agent.InMemoryKeyStore;
 import com.sshtools.agent.KeyConstraints;
+import com.sshtools.agent.client.AgentSocketType;
 import com.sshtools.agent.openssh.OpenSSHConnectionFactory;
+import com.sshtools.agent.provider.namedpipes.AbstractNamedPipe;
 import com.sshtools.agent.server.SshAgentServer;
-import com.sshtools.agent.win32.AbstractNamedPipe;
-import com.sshtools.agent.win32.NamedPipeServer;
 import com.sshtools.common.knownhosts.KnownHostsKeyVerification;
 import com.sshtools.common.logger.Log;
 import com.sshtools.common.publickey.InvalidPassphraseException;
@@ -944,7 +944,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		
 		server = new SshAgentServer(new OpenSSHConnectionFactory(), keystore);
 
-		server.startListener(new NamedPipeAcceptor(new NamedPipeServer(WINDOWS_NAMED_PIPE)));
+		server.startListener(WINDOWS_NAMED_PIPE, AgentSocketType.WINDOWS_NAMED_PIPE);
 
 		agentSocketPath = Paths.get(SSH_AGENT_PIPE);
 	}

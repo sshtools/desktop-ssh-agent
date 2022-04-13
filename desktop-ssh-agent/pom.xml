@@ -23,8 +23,8 @@
 
 	<properties>
 		<swt.version>3.118.0</swt.version>
-		<maven.compiler.source>11</maven.compiler.source>
-		<maven.compiler.target>11</maven.compiler.target>
+		<maven.compiler.source>17</maven.compiler.source>
+		<maven.compiler.target>17</maven.compiler.target>
 	</properties>
 
 	<parent>
@@ -71,6 +71,11 @@
 			</activation>
 			<dependencies>
 				<dependency>
+					<groupId>com.sshtools.hotfixes</groupId>
+					<artifactId>maverick-sshagent-named-pipes</artifactId>
+					<version>3.0.10-SNAPSHOT</version>
+				</dependency>
+				<dependency>
 					<groupId>org.eclipse.platform</groupId>
 					<artifactId>org.eclipse.swt.win32.win32.x86_64</artifactId>
 					<version>${swt.version}</version>
@@ -92,6 +97,11 @@
 				</os>
 			</activation>
 			<dependencies>
+				<dependency>
+					<groupId>com.sshtools.hotfixes</groupId>
+					<artifactId>maverick-sshagent-named-pipes</artifactId>
+					<version>3.0.10-SNAPSHOT</version>
+				</dependency>
 				<dependency>
 					<groupId>org.eclipse.platform</groupId>
 					<artifactId>org.eclipse.swt.win32.win32.x86</artifactId>
@@ -127,6 +137,39 @@
 				</dependency>
 			</dependencies>
 		</profile>
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>0.9.11</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>build</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <imageName>desktop-ssh-agent</imageName>
+                            <mainClass>com.sshtools.desktop.agent.DesktopAgent</mainClass>
+                            <buildArgs>
+                                <buildArg>--no-fallback</buildArg>
+                                <buildArg>--report-unsupported-elements-at-runtime</buildArg>
+                                <buildArg>--allow-incomplete-classpath</buildArg>
+                                <buildArg>--enable-url-protocols=http,https</buildArg>
+                                <buildArg>--enable-all-security-services</buildArg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
 	</profiles>
 	<dependencies>
 		<dependency>
@@ -135,24 +178,35 @@
 			<version>${swt.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>com.sshtools</groupId>
+			<groupId>com.sshtools.hotfixes</groupId>
 			<artifactId>maverick-sshagent</artifactId>
-			<version>3.0.6</version>
+			<version>3.0.10-SNAPSHOT</version>
 		</dependency>
 		<dependency>
-			<groupId>com.sshtools</groupId>
+			<groupId>com.sshtools.hotfixes</groupId>
+			<artifactId>maverick-sshagent-jdk16-sockets</artifactId>
+			<version>3.0.10-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sshtools.hotfixes</groupId>
+			<artifactId>maverick-sshagent-named-pipes</artifactId>
+			<version>3.0.10-SNAPSHOT</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.sshtools.hotfixes</groupId>
 			<artifactId>maverick-bc</artifactId>
-			<version>3.0.6</version>
+			<version>3.0.10-SNAPSHOT</version>
 		</dependency>
 		<dependency>
-			<groupId>com.sshtools</groupId>
+			<groupId>com.sshtools.hotfixes</groupId>
 			<artifactId>maverick-synergy-client</artifactId>
-			<version>3.0.6</version>
+			<version>3.0.10-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>hypersocket-json-client</artifactId>
-			<version>1.0.13</version>
+			<version>1.0.20</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -187,7 +241,7 @@
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>two-slices</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
+			<version>0.0.2-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 
