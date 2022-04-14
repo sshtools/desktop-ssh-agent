@@ -129,7 +129,7 @@ public class ShellTerminalConnector extends AbstractTerminalConnector {
 			
 			writeLine("Public key authentication is available.");
 			String answer = promptForYesNo("Do you want to configure this server with your keys? ");
-			if("YES".equalsIgnoreCase(answer)) {
+			if("YES".equalsIgnoreCase(answer) || "Y".equalsIgnoreCase(answer)) {
 				writeLine("Checking ~/.ssh/authorized_keys");
 				SftpClient sftp = new SftpClient(ssh);
 				
@@ -152,7 +152,7 @@ public class ShellTerminalConnector extends AbstractTerminalConnector {
 						
 						answer = promptForYesNo(String.format("Do you want to add the %s key %s %s? ", 
 								StringUtils.defaultIfBlank(comment, "[No Comment]"), key.getAlgorithm(), key.getFingerprint()));
-						if("YES".equalsIgnoreCase(answer)) {
+						if("YES".equalsIgnoreCase(answer) || "Y".equalsIgnoreCase(answer)) {
 							writeLine(String.format("Adding %s %s", key.getAlgorithm(), key.getFingerprint()));
 							authorizedKeys.addKey(key, comment);
 						}
