@@ -21,28 +21,20 @@ package com.sshtools.desktop.agent.term;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import com.sshtools.client.SshClient;
 import com.sshtools.client.SshClientContext;
 import com.sshtools.client.sftp.SftpClient;
-import com.sshtools.client.sftp.TransferCancelledException;
-import com.sshtools.common.logger.Log;
 import com.sshtools.common.publickey.authorized.AuthorizedKeyFile;
 import com.sshtools.common.sftp.SftpStatusException;
 import com.sshtools.common.ssh.ChannelOpenException;
 import com.sshtools.common.ssh.SshException;
 import com.sshtools.common.ssh.components.SshPublicKey;
-import com.sshtools.common.util.FileUtils;
 import com.sshtools.desktop.agent.DesktopAgent;
 import com.sshtools.desktop.agent.JsonConnection;
-import com.sshtools.desktop.agent.Settings;
 import com.sshtools.terminal.emulation.Terminal;
 
 public class ShellTerminalConnector extends AbstractTerminalConnector {
