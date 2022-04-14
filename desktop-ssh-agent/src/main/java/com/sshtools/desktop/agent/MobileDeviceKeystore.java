@@ -143,7 +143,7 @@ public class MobileDeviceKeystore implements KeyStore {
 		
 		Map<SshPublicKey, String> results = new HashMap<>();
 		if(ping()) {
-			results.putAll(getDeviceKeys());	
+			results.putAll(getDeviceKeys(false));	
 		}
 		results.putAll(localKeystore.getPublicKeys());
 		return results;
@@ -158,7 +158,11 @@ public class MobileDeviceKeystore implements KeyStore {
 		return client;
 	}
 	
-	public Map<SshPublicKey, String> getDeviceKeys() {
+	public Map<SshPublicKey, String> getDeviceKeys(boolean reconnect) {
+		
+		if(reconnect) {
+			client = null;
+		}
 		
 		if(StringUtils.isAnyBlank(agent.getUsername(), agent.getHostname())) {
 			return Collections.emptyMap();
@@ -252,7 +256,7 @@ public class MobileDeviceKeystore implements KeyStore {
 		
 		try { 
 			
-			Map<SshPublicKey, String> deviceKeys = getDeviceKeys();
+			Map<SshPublicKey, String> deviceKeys = getDeviceKeys(false);
 			if(deviceKeys.containsKey(pubkey)) {
 				Log.error("The key {} is already installed as a device key", pubkey.getFingerprint());
 				return false;
@@ -272,7 +276,7 @@ public class MobileDeviceKeystore implements KeyStore {
 	public boolean addKey(SshKeyPair pair, String description, KeyConstraints cs) {
 		
 		try {
-			Map<SshPublicKey, String> deviceKeys = getDeviceKeys();
+			Map<SshPublicKey, String> deviceKeys = getDeviceKeys(false);
 			if(deviceKeys.containsKey(pair.getPublicKey())) {
 				Log.error("The key {} is already installed as a device key", pair.getPublicKey().getFingerprint());
 				return false;
@@ -432,11 +436,11 @@ public class MobileDeviceKeystore implements KeyStore {
 	}
 
 	public boolean isDeviceKey(SshPublicKey key) {
-		return getDeviceKeys().containsKey(key);
+		return getDeviceKeys(false).containsKey(key);
 	}
 
 	public String getKeyName(SshPublicKey key) {
-		Map<SshPublicKey, String> tmp = getDeviceKeys();
+		Map<SshPublicKey, String> tmp = getDeviceKeys(false);
 		if(tmp.containsKey(key)) {
 			return tmp.get(key);
 		} 

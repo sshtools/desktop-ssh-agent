@@ -18,6 +18,7 @@
  */
 package com.sshtools.desktop.agent;
 
+import java.awt.Desktop;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -25,6 +26,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -210,7 +213,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 							if(online.get() && (firstRun || System.currentTimeMillis() - lastUpdated > 60000L * 10)) {
 								lastUpdated= System.currentTimeMillis();
 								loadConnections();
-								loadDeviceKeys();
+								loadDeviceKeys(false);
 							}
 						}
 
@@ -232,6 +235,8 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 	}
 
 	private void loadKeys() {
+		
+		loadDeviceKeys(false);
 		
 		for(File keyfile : Settings.getInstance().getKeyFiles()) {
 			if(!keyfile.exists() || keyfile.isDirectory()) {
@@ -339,6 +344,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			public void run() {
 				SettingsDialog settings = new SettingsDialog(display, DesktopAgent.this);
 				settings.open();
+				loadDeviceKeys(true);
 			}
 		});
 
@@ -505,6 +511,18 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 					showSettings();
 				}
 			});
+			
+			
+			org.eclipse.swt.widgets.MenuItem mDocumentation = new org.eclipse.swt.widgets.MenuItem(menu, SWT.PUSH);
+			mDocumentation.setText("Documentation");
+			mDocumentation.addListener(SWT.Selection, new Listener() {
+				public void handleEvent(Event event) {
+					try {
+						Desktop.getDesktop().browse(new URI("https://jadaptive.com/app/manpage/agent/category/199447"));
+					} catch (IOException | URISyntaxException e) {
+					}
+				}
+			});
 		
 			org.eclipse.swt.widgets.MenuItem mAbout = new org.eclipse.swt.widgets.MenuItem(menu, SWT.PUSH);
 			mAbout.setText("About");
@@ -652,7 +670,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 					
 					new Thread() {
 						public void run() {
-							launchClient(con.getHostname(), con.getPort(), con.getUsername());
+							launchClient(con.getHostname(), con.getPort(), con.getUsername(), false);
 						}
 					}.start();
 				}
@@ -694,7 +712,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		
 	}
 	
-	private void launchClient(String hostname, int port, String username) {
+	private void launchClient(String hostname, int port, String username, boolean useKeyWizard) {
 		
 		if(Settings.getInstance().getUseBuiltInTerminal()) {
 			
@@ -705,7 +723,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			SWTUtil.safeAsyncExec(new Runnable() {
 				public void  run() {
 					 new TerminalDisplay().runTerminal(username + "@" + hostname + ":" + port,
-							 new ShellTerminalConnector(DesktopAgent.this, hostname, port, username));
+							 new ShellTerminalConnector(DesktopAgent.this, hostname, port, username, useKeyWizard));
 				}
 			});
 		} else {
@@ -1101,7 +1119,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		            	TableItem[] items = connectionsTable.getSelection();
 		                if(items!=null && items.length > 0) {
 		                	JsonConnection con = (JsonConnection) items[0].getData();
-			                launchClient(con.getHostname(), con.getPort(), con.getUsername());
+			                launchClient(con.getHostname(), con.getPort(), con.getUsername(), false);
 			                connectionsShell.setVisible(false);
 		                }
 		            }
@@ -1118,7 +1136,12 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		            	SWTUtil.safeAsyncExec(new Runnable() {
 		            		public void run() {
 		            			ConnectionDialog dialog = new ConnectionDialog(connectionsShell, DesktopAgent.this);
-				            	dialog.open();
+				            	if(dialog.open()) {
+				            		launchClient(dialog.getConnection().getHostname(), 
+				            				dialog.getConnection().getPort(),
+				            				dialog.getConnection().getUsername(), true);
+				            	}
+				            	
 		            		}
 		            	});
 		            	
@@ -1140,7 +1163,11 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		                if(items!=null && items.length > 0) {
 			                	JsonConnection con = (JsonConnection) items[0].getData();
 			                	ConnectionDialog dialog = new ConnectionDialog(connectionsShell, DesktopAgent.this, con);
-			                	dialog.open();
+			                	if(dialog.open()) {
+				            		launchClient(dialog.getConnection().getHostname(), 
+				            				dialog.getConnection().getPort(),
+				            				dialog.getConnection().getUsername(), true);
+				            	}
 		                }
 					}
 				});
@@ -1735,7 +1762,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 					}
 					
 					synchronized (deviceKeys) {
-						loadDeviceKeys();
+						loadDeviceKeys(false);
 						for (Map.Entry<SshPublicKey, String> entry : deviceKeys.entrySet()) {
 							TableItem item = new TableItem(keyTable, SWT.NONE);
 							item.setData(entry.getKey());
@@ -1956,7 +1983,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			public void run() {
 				
 				if(online.get()) {
-					loadDeviceKeys();
+					loadDeviceKeys(false);
 					displayKeys();
 				}
 			}
@@ -1964,11 +1991,11 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		
 	}
 
-	private void loadDeviceKeys() {
+	private void loadDeviceKeys(boolean reconnect) {
 		synchronized (deviceKeys) {
 			try {
 				deviceKeys.clear();
-				deviceKeys.putAll(keystore.getDeviceKeys());
+				deviceKeys.putAll(keystore.getDeviceKeys(reconnect));
 				Log.info("Got {} device keys", deviceKeys.size());
 			} catch (Exception e) {
 				Log.error("Could not load device keys", e);
@@ -2051,7 +2078,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 	    return result.toArray(new String[result.size()]);
 	}
 
-	public void saveConnection(String name, String hostname, Integer port, String username, String oldName) throws SshException, IOException {
+	public JsonConnection saveConnection(String name, String hostname, Integer port, String username, String oldName) throws SshException, IOException {
 		
 		Set<String> aliases = new TreeSet<String>();
 		aliases.add(hostname);
@@ -2096,9 +2123,17 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 				}
 			}
 		});
+		
+		return con;
 	}
 
 	public String getSocketPath() {
 		return agentSocketPath.toString();
+	}
+
+	public Map<SshPublicKey,String> getKeys() {
+		Map<SshPublicKey,String>  tmp = new HashMap<>(deviceKeys);
+		tmp.putAll(localKeys.getPublicKeys());
+		return tmp;
 	}
 }

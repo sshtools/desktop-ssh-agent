@@ -18,10 +18,16 @@
  */
 package com.sshtools.desktop.agent.swt;
 
+import java.awt.Desktop;
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
@@ -52,6 +58,7 @@ public class SettingsDialog extends Dialog {
 	Text terminalCommand;
 	Text terminalArguments; 
 	Button builtInTerminal;
+	Button keyWizard;
 	Combo iconMode;
 	Text username;
 	Text deviceName;
@@ -164,8 +171,22 @@ public class SettingsDialog extends Dialog {
 			this.setLayout(layout);
 			
 			Link linkButton = new Link(this, SWT.WRAP);
-			linkButton.setText("Connect your <a href=\"https://www.logonbox.com/content/logonbox-authenticator\">LogonBox Authenticator</a> app to use LogonBox credentials to log into your SSH services.");
-			
+			linkButton.setText("Connect your <a href=\"https://jadaptive.com/app/manpage/en/article/3472779\">LogonBox Authenticator</a> app to use LogonBox credentials to log into your SSH services.");
+			linkButton.addSelectionListener(new SelectionListener() {
+
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					try {
+						Desktop.getDesktop().browse(new URI("https://jadaptive.com/app/manpage/en/article/3472779"));
+					} catch (IOException | URISyntaxException e1) {
+					}
+				}
+
+				@Override
+				public void widgetDefaultSelected(SelectionEvent e) {
+				}
+				
+			});
 			new Label(this, SWT.NONE).setText("Account Name");
 		    
 		    username = new Text(this, SWT.SINGLE | SWT.BORDER);
@@ -240,8 +261,10 @@ public class SettingsDialog extends Dialog {
 			    public void widgetSelected(SelectionEvent event) {
 			        terminalCommand.setEnabled(!((Button) event.getSource()).getSelection());
 			        terminalArguments.setEnabled(!((Button) event.getSource()).getSelection());
+			        keyWizard.setEnabled(((Button) event.getSource()).getSelection());
 			    }
 			});
+
 		  }
 	}
 	

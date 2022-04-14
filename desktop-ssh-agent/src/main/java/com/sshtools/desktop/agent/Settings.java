@@ -45,6 +45,7 @@ public class Settings {
 	private String terminalCommand;
 	private String terminalArguments;
 	private boolean useBuiltInTerminal;
+
 	private Set<String> favoriteIds = new HashSet<String>();
 	private Map<SshPublicKey,File> localKeys= new HashMap<>();
 	private Set<File> keyfiles = new HashSet<>();
@@ -71,6 +72,7 @@ public class Settings {
 			terminalCommand = properties.getProperty("terminalCommand");
 			terminalArguments = properties.getProperty("terminalArguments");
 			useBuiltInTerminal = Boolean.valueOf(properties.getProperty("useBuiltInTerminal", "true"));
+			
 			iconMode = IconMode.valueOf(properties.getProperty("iconMode", IconMode.AUTO.name()));
 
 			if(properties.containsKey("favorites")) {
@@ -100,6 +102,7 @@ public class Settings {
 		properties.put("terminalArguments", terminalArguments);
 		properties.put("favorites", HypersocketUtils.csv(favoriteIds.toArray()));
 		properties.put("useBuiltInTerminal", String.valueOf(useBuiltInTerminal));
+
 		properties.put("iconMode", iconMode.name());
 		
 		StringBuffer buf = new StringBuffer();
