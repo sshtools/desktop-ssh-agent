@@ -72,6 +72,7 @@ public abstract class AbstractTerminalConnector {
 	protected final String serverName;
 	protected final int serverPort;
 	protected final String username;
+	protected String pwd = null;
 	
 	protected InputStream tin;
 	protected OutputStream tout;
@@ -204,7 +205,7 @@ public abstract class AbstractTerminalConnector {
 								writeString(prompt.getPrompt());
 								vt.setLocalEcho(true);
 								vt.setMaskInput(!prompt.echo());
-								prompt.setResponse(reader.readLine());
+								prompt.setResponse(pwd = reader.readLine());
 								writeLine();
 							}
 							vt.setLocalEcho(false);
@@ -220,7 +221,7 @@ public abstract class AbstractTerminalConnector {
 				writeString("Your password: ");
 				vt.setMaskInput(true);
 				vt.setEchoChar('*');
-				String pwd = reader.readLine();
+				pwd = reader.readLine();
 				auth = new PasswordAuthenticator(pwd);
 				writeLine();
 			} else {

@@ -41,6 +41,7 @@ import org.eclipse.swt.widgets.Text;
 import com.sshtools.common.ssh.SshException;
 import com.sshtools.desktop.agent.DesktopAgent;
 import com.sshtools.desktop.agent.JsonConnection;
+import com.sshtools.desktop.agent.Settings;
 
 public class ConnectionDialog extends Dialog {
 
@@ -51,8 +52,10 @@ public class ConnectionDialog extends Dialog {
 	Text hostname;
 	Text port; 
 	Text username;
+	Button keyWizard;
 	DesktopAgent agent; 
 	JsonConnection edit;
+	boolean useWizard = true;
 	
 	public ConnectionDialog(Shell parent, DesktopAgent agent) {
 		this(parent, agent, 0);
@@ -61,6 +64,7 @@ public class ConnectionDialog extends Dialog {
 	public ConnectionDialog(Shell parent, DesktopAgent agent, JsonConnection edit) {
 		this(parent, agent, 0);
 		this.edit = edit;
+		this.useWizard = false;
 	}
 	
 	public ConnectionDialog(Shell parent, DesktopAgent agent, int  style) {
@@ -69,7 +73,11 @@ public class ConnectionDialog extends Dialog {
         this.agent = agent;
 	}
 
-	public void open()
+	public JsonConnection getConnection() {
+		return edit;
+	}
+	
+	public boolean open()
     {
         shell.setText(getText());
         createContents(shell);
@@ -90,6 +98,8 @@ public class ConnectionDialog extends Dialog {
                 display.sleep();
             }
         }
+        
+        return edit != null && useWizard;
     }
 	
 	protected void createContents(final Shell shell) {
@@ -121,10 +131,13 @@ public class ConnectionDialog extends Dialog {
             	String h = hostname.getText();
             	String p = port.getText();
             	String u = username.getText();
+            	useWizard = keyWizard.getSelection();
+            	
             	new Thread() {
             		public void run() {
             			try {
-            				agent.saveConnection(n, h, Integer.parseInt(p), u, Objects.isNull(edit) ? null : edit.getName());
+            				edit = agent.saveConnection(n, h, Integer.parseInt(p), u, Objects.isNull(edit) ? null : edit.getName());
+            				
             				shell.getDisplay().asyncExec(new Runnable() {
             					public void run() {
             						shell.dispose();
@@ -146,7 +159,7 @@ public class ConnectionDialog extends Dialog {
 	class GridComposite extends Composite {
 
 		  public GridComposite(Composite c) {
-		    super(c, SWT.BORDER);
+		    super(c, SWT.SINGLE);
 		    GridLayout layout = new GridLayout(3, true);
 		    layout.marginBottom = layout.marginTop = layout.marginLeft = layout.marginRight = 8;
 			this.setLayout(layout);
@@ -211,7 +224,16 @@ public class ConnectionDialog extends Dialog {
 		    l6.setText("The username of the account you want to login to on the remote server.");
 		    l6.setLayoutData(data);
 		    l6.setForeground(getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
+		  
+		    new Label(this, SWT.NONE).setText("");
+		    
+			keyWizard = new Button(this, SWT.CHECK);
+			keyWizard.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+			keyWizard.setSelection(useWizard);
+			keyWizard.setLayoutData(data);
+			keyWizard.setText("Connect terminal and run the public key wizard upon save.");
 		  }
+		    
 	}
 
 }
