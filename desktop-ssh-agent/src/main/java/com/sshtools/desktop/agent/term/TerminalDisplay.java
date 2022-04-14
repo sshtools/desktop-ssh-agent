@@ -59,7 +59,7 @@ public class TerminalDisplay {
 	SWTTerminalPanel stp = null;
 	Shell frame;
 	
-	public void runTerminal(String title, AbstractTerminalConnector connector) {
+	public void runTerminal(String title, ShellTerminalConnector connector) {
 
 			GridLayout layout = new GridLayout(2, false);
 
@@ -143,7 +143,7 @@ public class TerminalDisplay {
 				public void mouseDoubleClick(MouseEvent e) {
 				}
 			});
-
+			
 			// Scan for URLs occurring in output
 			new SWTURIFinder(stp, (uri, button) -> Desktop.getDesktop().browse(uri));
 
@@ -164,7 +164,7 @@ public class TerminalDisplay {
 				tprops.containsKey(PROFILE_PROPERTY_CURSOR_BACKGROUND) ? new VDUColor(tprops.getProperty(PROFILE_PROPERTY_CURSOR_BACKGROUND)) : VDUColor.GREEN);
 		stp.setCursorBlink(tprops.containsKey(PROFILE_PROPERTY_CURSOR_BLINK) ? "true".equalsIgnoreCase(tprops.getProperty(PROFILE_PROPERTY_CURSOR_BLINK)) : true);
 		stp.setCursorStyle(tprops.containsKey(PROFILE_PROPERTY_CURSOR_STYLE) ? Integer.parseInt(tprops.getProperty(PROFILE_PROPERTY_CURSOR_STYLE)) : SWTTerminalPanel.CURSOR_BLOCK);
-	
+		stp.redisplay();
 	}
 	
 	private void configureTerminal(SWTTerminalPanel stp) {
