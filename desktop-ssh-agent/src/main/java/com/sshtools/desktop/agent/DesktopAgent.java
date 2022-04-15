@@ -200,13 +200,13 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 								if(Log.isInfoEnabled()) {
 									Log.info("The agent is back online");
 								}
-								Toast.toast(ToastType.INFO, "Agent Connection", String.format("The agent has connected to %s", hostname));
+								Toast.toast(ToastType.INFO, "Desktop SSH Agent", String.format("The agent has connected to %s", hostname));
 								firstRun = true;
 							} else if(!online.get() && (firstRun || !wasOffline)) {
 								if(Log.isInfoEnabled()) {
 									Log.info("The agent is offline");
 								}
-								Toast.toast(ToastType.WARNING, "Agent Connection", String.format("The agent %s connected to %s", 
+								Toast.toast(ToastType.WARNING, "Desktop SSH Agent", String.format("The agent %s connected to %s", 
 										firstRun ? "could not be " : "is no longer", hostname));
 							}
 							
