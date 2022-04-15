@@ -140,7 +140,10 @@ public abstract class AbstractTerminalConnector {
 			writeString(msg);	
 			answer = reader.readLine();
 			msg = "\r\nPlease type 'yes' or 'no': ";
-		} while(!answer.equalsIgnoreCase("YES") && !answer.equalsIgnoreCase("NO"));
+		} while(!answer.equalsIgnoreCase("YES") 
+				&& !answer.equalsIgnoreCase("Y") 
+				&& !answer.equalsIgnoreCase("NO")
+				&& !answer.equalsIgnoreCase("N"));
 		
 		writeLine();
 		return answer;
