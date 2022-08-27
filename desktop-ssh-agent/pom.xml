@@ -30,7 +30,7 @@
 	<parent>
 		<groupId>com.sshtools</groupId>
 		<artifactId>desktop-ssh-agent-group</artifactId>
-		<version>3.0.1</version>
+		<version>3.0.2-SNAPSHOT</version>
 	</parent>
 
 	<name>Desktop SSH Agent</name>
@@ -137,17 +137,17 @@
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-sshagent</artifactId>
-			<version>3.0.7</version>
+			<version>3.0.10-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-bc</artifactId>
-			<version>3.0.7</version>
+			<version>3.0.10-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-synergy-client</artifactId>
-			<version>3.0.7</version>
+			<version>3.0.10-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
