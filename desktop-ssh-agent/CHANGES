@@ -1,3 +1,25 @@
+Desktop SSH Agent 3.0.2 - Dec 1, 2022
+
+- OpenSSH 8.9 client no longer connects to agent due to invalid message.
+- Allow yes/no/y/n as answer when configuring public keys.
+
+Desktop SSH Agent 3.0.1 - April 14, 2022
+
+- Added public key wizard for new connections.
+- Ensure device keys are reloaded immediately after change of preferences.
+- Theme does not apply correctly until terminal is cleared.
+- Added new themes for terminal
+
+Desktop SSH Agent 3.0.0 - March 29, 2022
+
+- Favorites not loading until connection panel is shown.
+- Updated icons and information in about dialog.
+- Support for LogonBox Authenticator
+
+Desktop SSH Agent 2.0.0 - June 11, 2020
+
+- Fixed DEV_VERSION display.
+
 Desktop SSH Agent 1.1.0 - Oct 7, 2019
 
 - Rebrand to JADAPTIVE
