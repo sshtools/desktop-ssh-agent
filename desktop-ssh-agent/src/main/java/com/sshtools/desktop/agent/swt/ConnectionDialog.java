@@ -41,7 +41,6 @@ import org.eclipse.swt.widgets.Text;
 import com.sshtools.common.ssh.SshException;
 import com.sshtools.desktop.agent.DesktopAgent;
 import com.sshtools.desktop.agent.JsonConnection;
-import com.sshtools.desktop.agent.Settings;
 
 public class ConnectionDialog extends Dialog {
 
