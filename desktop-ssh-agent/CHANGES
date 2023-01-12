@@ -1,32 +1,46 @@
+Desktop SSH Agent 3.0.3 - TBC
+
+- Support for permanent passphrase storage in local OS key chain
+
+-----------------------
+
 Desktop SSH Agent 3.0.2 - Dec 1, 2022
 
 - OpenSSH 8.9 client no longer connects to agent due to invalid message.
 - Allow yes/no/y/n as answer when configuring public keys.
 
+---
+ 
 Desktop SSH Agent 3.0.1 - April 14, 2022
 
-- Added public key wizard for new connections.
-- Ensure device keys are reloaded immediately after change of preferences.
-- Theme does not apply correctly until terminal is cleared.
-- Added new themes for terminal
+- New public key wizard for automatic configuration of your keys when adding/editing a connection.
+- Added a number of new themes for the built-in terminal
+- Upgraded to Maverick Synergy 3.0.7
+- Upgraded two-slices notification API
+- Fixed issue in built-in terminal where selecting a theme does not apply fully until you clear the screen
+- Ensure private keys are loaded from key server immediately after preferences change
+- Updated Jackson API to fix security vulnerabilities
+
+---
 
 Desktop SSH Agent 3.0.0 - March 29, 2022
 
-- Favorites not loading until connection panel is shown.
-- Updated icons and information in about dialog.
-- Support for LogonBox Authenticator
+- New "Secret Agent" icon for system tray.
+- Upgrade SWT to resolve some user interface problems.
+- Built-in terminal fixes.
+- Integration with the LogonBox Authenticator app.
+- Updated to latest version of Maverick Synergy API.
+
+---
 
 Desktop SSH Agent 2.0.0 - June 11, 2020
 
-- Fixed DEV_VERSION display.
+- Major re-write for improved stability.
+- Removed requirement to have a cloud account.
+- Optional integration with the new Universal Authenticator app.
+- Now built with Maverick Synergy SSH API.
 
-Desktop SSH Agent 1.1.0 - Oct 7, 2019
-
-- Rebrand to JADAPTIVE
-- Ported to use the new Maverick Synergy open-source SSH API
-- Fixed periodic overwrite of known_hosts file
-
------------------
+---
 
 Desktop SSH Agent 1.0.0 - Jun  29, 2018
 
