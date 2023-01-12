@@ -20,22 +20,18 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-
 	<properties>
-		<swt.version>3.118.0</swt.version>
+		<swt.version>3.122.0</swt.version>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
 	</properties>
-
 	<parent>
 		<groupId>com.sshtools</groupId>
 		<artifactId>desktop-ssh-agent-group</artifactId>
-		<version>3.0.2</version>
+		<version>3.0.3-SNAPSHOT</version>
 	</parent>
-
 	<name>Desktop SSH Agent</name>
 	<artifactId>desktop-ssh-agent</artifactId>
-
 	<profiles>
 		<profile>
 			<!-- There are no longer any 32 bit SWT builds for Linux it seems, this 
@@ -189,19 +185,28 @@
 			<artifactId>two-slices</artifactId>
 			<version>0.9.0-SNAPSHOT</version>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.github.javakeyring/java-keyring -->
+		<dependency>
+			<groupId>com.github.javakeyring</groupId>
+			<artifactId>java-keyring</artifactId>
+			<version>1.0.1</version>
+		</dependency>
+		<dependency>
+			<groupId>pt.davidafsilva.apple</groupId>
+			<artifactId>jkeychain</artifactId>
+			<version>1.1.0</version>
+		</dependency>
 	</dependencies>
-
 	<repositories>
 		<repository>
 			<id>oss-snapshots</id>
 			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-			<snapshots/>
+			<snapshots />
 			<releases>
 				<enabled>false</enabled>
 			</releases>
 		</repository>
 	</repositories>
-
 	<build>
 		<plugins>
 			<plugin>
