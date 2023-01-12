@@ -66,6 +66,7 @@ public class InputForm extends SafeThreadedForm {
 		
 		executeThreadSafe(new Runnable() {
 			public void run() {
+				SWTUtil.center(shell);
 				shell.open();
 				shell.forceActive();
 				
@@ -91,16 +92,7 @@ public class InputForm extends SafeThreadedForm {
 		shell.setLayout(new GridLayout(1, false));
 		shell.setText(title);
 
-		Label m = new Label(shell, SWT.NULL);
-		m.setText(message);
-
-		inputField = new Text(shell, SWT.SINGLE | SWT.BORDER);
-		if(isPassword) {
-			inputField.setEchoChar('*');
-		}
-		inputField.setTextLimit(255);
-		inputField.setText(defaultValue);
-		inputField.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+		buildComponents(shell);
 
 		Button button = new Button(shell, SWT.PUSH);
 		button.setText("Submit");
@@ -118,7 +110,7 @@ public class InputForm extends SafeThreadedForm {
 				}
 				
 				theInput = inputField.getText();
-				
+				onCaptureInput();
 				ret = true;
 				shell.dispose();
 			}
@@ -132,5 +124,20 @@ public class InputForm extends SafeThreadedForm {
 		shell.pack();
 		
 		return shell;
+	}
+
+	protected void onCaptureInput() { }
+	protected void buildComponents(Shell shell) {
+		
+		Label m = new Label(shell, SWT.NULL);
+		m.setText(message);
+
+		inputField = new Text(shell, SWT.SINGLE | SWT.BORDER);
+		if(isPassword) {
+			inputField.setEchoChar('*');
+		}
+		inputField.setTextLimit(255);
+		inputField.setText(defaultValue);
+		inputField.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 	}
 }

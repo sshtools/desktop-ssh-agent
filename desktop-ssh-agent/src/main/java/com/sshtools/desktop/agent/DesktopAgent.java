@@ -76,6 +76,9 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Tray;
 import org.eclipse.swt.widgets.TrayItem;
 
+import com.github.javakeyring.BackendNotSupportedException;
+import com.github.javakeyring.Keyring;
+import com.github.javakeyring.PasswordAccessException;
 import com.sshtools.agent.InMemoryKeyStore;
 import com.sshtools.agent.KeyConstraints;
 import com.sshtools.agent.openssh.OpenSSHConnectionFactory;
@@ -97,6 +100,7 @@ import com.sshtools.desktop.agent.Settings.IconMode;
 import com.sshtools.desktop.agent.swt.ConnectionDialog;
 import com.sshtools.desktop.agent.swt.CustomDialog;
 import com.sshtools.desktop.agent.swt.InputForm;
+import com.sshtools.desktop.agent.swt.PassphraseForm;
 import com.sshtools.desktop.agent.swt.SWTAboutDialog;
 import com.sshtools.desktop.agent.swt.SWTUtil;
 import com.sshtools.desktop.agent.swt.SettingsDialog;
@@ -106,6 +110,9 @@ import com.sshtools.twoslices.Toast;
 import com.sshtools.twoslices.ToastType;
 import com.sshtools.twoslices.ToasterFactory;
 import com.sshtools.twoslices.ToasterSettings;
+
+import pt.davidafsilva.apple.OSXKeychain;
+import pt.davidafsilva.apple.OSXKeychainException;
 
 public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKeystoreListener {
 
@@ -144,6 +151,9 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 	
 	boolean quiting;
 	
+	Keyring keyring = null;
+	OSXKeychain keychain = null;
+	
 	protected DesktopAgent(Display display, Runnable restartCallback, Runnable shutdownCallback) throws IOException {
 
 		super();
@@ -178,7 +188,8 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			});
 
 			setupSystemTray();
-
+			setupKeychain();
+			
 			loadKeys();
 			loadKnownHostsFromFile();
 			
@@ -234,10 +245,91 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		}
 	}
 
+	private void setupKeychain() {
+		if (SystemUtils.IS_OS_MAC) {
+			try {
+				keychain = OSXKeychain.getInstance();
+			} catch (OSXKeychainException e) {
+				Log.error("No support for OSX Key Chain", e);
+			}
+		} else {
+		
+			try {
+				keyring = Keyring.create();
+			} catch (BackendNotSupportedException e) {
+				Log.error("No support for key ring", e);
+			}
+		}
+	}
+	
+	protected boolean hasKeyChain() {
+		return Objects.nonNull(keychain) || Objects.nonNull(keyring);
+	}
+
+	protected String getPassphrase(File keyfile) {
+		
+		String passphrase = null;
+		if (SystemUtils.IS_OS_MAC && Objects.nonNull(keychain)) {
+			try {
+				passphrase = keychain.findGenericPassword(getServiceName(keyfile), getAccountName()).orElse(null);
+			} catch (OSXKeychainException e) {
+				Log.error("Key chain failure", e);
+			}
+			if(Objects.nonNull(passphrase)) {
+				return passphrase;
+			}
+		} else if(Objects.nonNull(keyring)) {
+			
+			try {
+				passphrase = keyring.getPassword(getServiceName(keyfile), getAccountName());
+			} catch (PasswordAccessException e) {
+				Log.error("Key ring error", e);
+			}
+		}
+		
+		PassphraseForm form = new PassphraseForm(display,  "Passphrase Required",
+				String.format("Please enter your passphrase for key file %s", keyfile.getName()), 
+				"", hasKeyChain());
+		if(form.show()) {
+			passphrase = form.getInput();
+			if(form.isSaveToKeyChain()) {
+				storePassphrase(keyfile, passphrase);
+			}
+			return passphrase;
+		}
+		
+		return null;
+	}
+	
+	protected void storePassphrase(File keyfile, String passphrase) {
+		if (SystemUtils.IS_OS_MAC && Objects.nonNull(keychain)) {
+			try {
+				keychain.addGenericPassword(getServiceName(keyfile), getAccountName(), passphrase);
+			} catch (OSXKeychainException e) {
+				Log.error("Failed to add passphrase to key chain", e);
+			}
+		} else if(Objects.nonNull(keyring)) {
+			
+			try {
+				keyring.setPassword(getServiceName(keyfile), getAccountName(), passphrase);
+			} catch (PasswordAccessException e) {
+				Log.error("Key ring error", e);
+			}
+		}
+	}
+	
+	private String getAccountName() {
+		return System.getProperty("user.name");
+	}
+
+	private String getServiceName(File keyfile) {
+		return String.format("DesktopSSHAgent/%s", keyfile.getName());
+	}
+
 	private void loadKeys() {
 		
 		loadDeviceKeys(false);
-		
+
 		for(File keyfile : Settings.getInstance().getKeyFiles()) {
 			if(!keyfile.exists() || keyfile.isDirectory()) {
 				continue;
@@ -248,18 +340,15 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
             		SshKeyPair pair = null;
             		if(file.isPassphraseProtected()) {
             			for(int i=0;i<3;i++) {
-            				InputForm form = new InputForm(display,  "Passphrase Required",
-            						String.format("Please enter your passphrase for key file %s", keyfile.getName()), 
-            						"", true);
-            				if(form.show()) {
-            					try {
-								pair = file.toKeyPair(form.getInput());
+
+            				try {
+								pair = file.toKeyPair(getPassphrase(keyfile));
 							} catch (InvalidPassphraseException e) {
 								SWTUtil.showError("Add Key", "Invalid passphrase!");
 								continue;
 							}
-            					break;
-            				} 
+            				break;
+            				
             			}
             		} else {
             			try {
@@ -1743,7 +1832,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 				if (keyTable != null) {
 					keyTable.removeAll();
 
-					String[] titles = { "Description", "Device Key", "Type", "Fingerprint" };
+					String[] titles = { "Description", "Source", "Type", "Fingerprint" };
 					for (int i = 0; i < titles.length; i++) {
 						TableColumn column = new TableColumn(keyTable, SWT.NONE);
 						column.setText(titles[i]);
@@ -1755,7 +1844,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 						item.setData(entry.getKey());
 
 						item.setText(0, entry.getValue());
-						item.setText(1, StringUtils.center("", 10));
+						item.setText(1, StringUtils.center("Local", 10));
 						item.setText(2, entry.getKey().getAlgorithm());
 						item.setText(3, SshKeyUtils.getFingerprint(entry.getKey()));
 						
@@ -1770,7 +1859,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 								item.setForeground(display.getSystemColor(SWT.COLOR_RED));
 							}
 							item.setText(0, entry.getValue());
-							item.setText(1, StringUtils.center("\u2714", 10));
+							item.setText(1, StringUtils.center("Phone", 10));
 							item.setText(2, entry.getKey().getAlgorithm());
 							item.setText(3, SshKeyUtils.getFingerprint(entry.getKey()));
 							
