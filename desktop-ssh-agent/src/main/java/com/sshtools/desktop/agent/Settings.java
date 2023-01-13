@@ -50,6 +50,7 @@ public class Settings {
 	private Map<SshPublicKey,File> localKeys= new HashMap<>();
 	private Set<File> keyfiles = new HashSet<>();
 	private IconMode iconMode = IconMode.AUTO;
+	private boolean synchronizeKeys = false;
 	
 	Settings() {
 		terminalCommand = "";
@@ -196,6 +197,13 @@ public class Settings {
 	public IconMode getIconMode() {
 		return iconMode;
 	}
-	
+
+	public boolean isSynchronizeKeys() {
+		return synchronizeKeys;
+	}
+
+	public void setSynchronizeKeys(boolean synchronizeKeys) {
+		this.synchronizeKeys = synchronizeKeys;
+	}
 	
 }

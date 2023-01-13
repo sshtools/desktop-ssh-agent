@@ -48,6 +48,7 @@ import org.eclipse.swt.widgets.Text;
 import com.sshtools.desktop.agent.DesktopAgent;
 import com.sshtools.desktop.agent.Settings;
 import com.sshtools.desktop.agent.Settings.IconMode;
+import com.sshtools.desktop.agent.sshteam.SshTeamHelper;
 
 public class SettingsDialog extends Dialog {
 
@@ -66,6 +67,7 @@ public class SettingsDialog extends Dialog {
 	Text port;
 	Button strictSSL;
 	Button authorize;
+	Button synchronizeKeys;
 	
 	DesktopAgent agent;
 	
@@ -119,7 +121,7 @@ public class SettingsDialog extends Dialog {
 		tabTerminal.setControl(new TerminalPreferencePanel(tabFolder));
 	
 		TabItem tabAccount = new TabItem(tabFolder, SWT.NONE);
-		tabAccount.setText("Authenticator");
+		tabAccount.setText("Key Management");
 		tabAccount.setControl(new AccountPreferencePanel(tabFolder));
 		
 		TabItem tabUI = new TabItem(tabFolder, SWT.NONE);
@@ -148,6 +150,7 @@ public class SettingsDialog extends Dialog {
 			Settings.getInstance().setIconMode(IconMode.values()[iconMode.getSelectionIndex()]);
 			Settings.getInstance().setTerminalCommand(terminalCommand.getText());
 			Settings.getInstance().setTerminalArguments(terminalArguments.getText());
+			Settings.getInstance().setSynchronizeKeys(synchronizeKeys.getSelection());
 			Settings.getInstance().save();
 			
 			agent.saveProperties(username.getText(), 
@@ -156,6 +159,14 @@ public class SettingsDialog extends Dialog {
 					!strictSSL.getSelection());
 						
 			agent.resetIcon();
+			
+			if(Settings.getInstance().isSynchronizeKeys()) {
+				if(!SshTeamHelper.verifyAccess(agent.getUsername(), agent.getHostname(),
+						agent.getPort(), agent.getKeys().keySet())) {
+					SWTUtil.showInformation("Key Management", 
+							"To start synchronization you must upload one of the public keys from this agent to your ssh.team domain");
+				}
+			}
 		} catch (Throwable e) {
 			SWTUtil.showError("Preferences", 
 					String.format("Could not save preferences!\r\n%s",e.getMessage()));
@@ -171,13 +182,14 @@ public class SettingsDialog extends Dialog {
 			this.setLayout(layout);
 			
 			Link linkButton = new Link(this, SWT.WRAP);
-			linkButton.setText("Connect your <a href=\"https://jadaptive.com/app/manpage/en/article/3472779\">LogonBox Authenticator</a> app to use LogonBox credentials to log into your SSH services.");
+//			Connect your <a href=\"https://jadaptive.com/app/manpage/en/article/3472779\">LogonBox Authenticator</a> app to use LogonBox credentials to log into your SSH services.
+			linkButton.setText("Connect to a <a href=\"https://ssh.team/\">ssh.team</a> domain to synchronize your keys with your key management account.");
 			linkButton.addSelectionListener(new SelectionListener() {
 
 				@Override
 				public void widgetSelected(SelectionEvent e) {
 					try {
-						Desktop.getDesktop().browse(new URI("https://jadaptive.com/app/manpage/en/article/3472779"));
+						Desktop.getDesktop().browse(new URI("https://ssh.team/"));
 					} catch (IOException | URISyntaxException e1) {
 					}
 				}
@@ -187,6 +199,10 @@ public class SettingsDialog extends Dialog {
 				}
 				
 			});
+			
+			new Label(this, SWT.NONE).setText("To push keys from this agent to your key server ensure you have at least one public key");
+			new Label(this, SWT.NONE).setText("configured on the server from your agents private key list.");
+			new Label(this, SWT.NONE).setText("");
 			new Label(this, SWT.NONE).setText("Account Name");
 		    
 		    username = new Text(this, SWT.SINGLE | SWT.BORDER);
@@ -204,6 +220,12 @@ public class SettingsDialog extends Dialog {
 		    port = new Text(this, SWT.SINGLE | SWT.BORDER);
 		    port.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		    port.setText(String.valueOf(agent.getPort()));
+		    new Label(this, SWT.NONE);
+		    
+		    synchronizeKeys = new Button(this, SWT.CHECK);
+		    synchronizeKeys.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+		    synchronizeKeys.setSelection(Settings.getInstance().isSynchronizeKeys());
+		    synchronizeKeys.setText("Synchronize public keys with your ssh.team domain.");
 		    new Label(this, SWT.NONE);
 		    
 		    strictSSL = new Button(this, SWT.CHECK);
