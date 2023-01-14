@@ -22,9 +22,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import com.sshtools.agent.provider.namedpipes.NamedPipeServer;
 import com.sshtools.agent.server.SshAgentAcceptor;
 import com.sshtools.agent.server.SshAgentTransport;
-import com.sshtools.agent.win32.NamedPipeServer;
 
 public class NamedPipeAcceptor implements SshAgentAcceptor {
 

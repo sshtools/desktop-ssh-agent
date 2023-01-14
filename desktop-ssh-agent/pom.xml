@@ -22,13 +22,13 @@
 	<modelVersion>4.0.0</modelVersion>
 	<properties>
 		<swt.version>3.122.0</swt.version>
-		<maven.compiler.source>11</maven.compiler.source>
-		<maven.compiler.target>11</maven.compiler.target>
+		<maven.compiler.source>17</maven.compiler.source>
+		<maven.compiler.target>17</maven.compiler.target>
 	</properties>
 	<parent>
 		<groupId>com.sshtools</groupId>
 		<artifactId>desktop-ssh-agent-group</artifactId>
-		<version>3.0.3-SNAPSHOT</version>
+		<version>3.1.0-SNAPSHOT</version>
 	</parent>
 	<name>Desktop SSH Agent</name>
 	<artifactId>desktop-ssh-agent</artifactId>
@@ -131,19 +131,29 @@
 			<version>${swt.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>com.sshtools</groupId>
+			<groupId>com.sshtools.hotfixes</groupId>
 			<artifactId>maverick-sshagent</artifactId>
-			<version>3.0.10</version>
+			<version>3.1.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
-			<groupId>com.sshtools</groupId>
+			<groupId>com.sshtools.hotfixes</groupId>
+			<artifactId>maverick-sshagent-jdk16-sockets</artifactId>
+			<version>3.1.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sshtools.hotfixes</groupId>
+			<artifactId>maverick-sshagent-named-pipes</artifactId>
+			<version>3.1.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sshtools.hotfixes</groupId>
 			<artifactId>maverick-bc</artifactId>
-			<version>3.0.10</version>
+			<version>3.1.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
-			<groupId>com.sshtools</groupId>
+			<groupId>com.sshtools.hotfixes</groupId>
 			<artifactId>maverick-synergy-client</artifactId>
-			<version>3.0.10</version>
+			<version>3.1.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
@@ -183,7 +193,7 @@
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>two-slices</artifactId>
-			<version>0.9.0-SNAPSHOT</version>
+			<version>0.9.1-SNAPSHOT</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.github.javakeyring/java-keyring -->
 		<dependency>
@@ -205,6 +215,18 @@
 			<releases>
 				<enabled>false</enabled>
 			</releases>
+		</repository>
+		<repository>
+			<id>sshtools-releases</id>
+			<name>sshtools-releases</name>
+			<snapshots><enabled>false</enabled></snapshots>
+			<url>https://artifactory.jadaptive.com/public-releases</url>
+		</repository>
+		<repository>
+			<id>sshtools-snapshots</id>
+			<name>sshtools-snapshots</name>
+			<snapshots><enabled>true</enabled></snapshots>
+			<url>https://artifactory.jadaptive.com/public-snapshots</url>
 		</repository>
 	</repositories>
 	<build>

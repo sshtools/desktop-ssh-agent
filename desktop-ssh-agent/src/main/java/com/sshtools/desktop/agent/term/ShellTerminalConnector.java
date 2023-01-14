@@ -123,43 +123,44 @@ public class ShellTerminalConnector extends AbstractTerminalConnector {
 			String answer = promptForYesNo("Do you want to configure this server with your keys? ");
 			if("YES".equalsIgnoreCase(answer) || "Y".equalsIgnoreCase(answer)) {
 				writeLine("Checking ~/.ssh/authorized_keys");
-				SftpClient sftp = new SftpClient(ssh);
+				try(SftpClient sftp = new SftpClient(ssh)) {
 				
 				AuthorizedKeyFile authorizedKeys = new AuthorizedKeyFile();
-				try {
-					sftp.stat(".ssh/authorized_keys");
-					writeLine("Opening ~/.ssh/authorized_keys");
-					try(InputStream in  = sftp.getInputStream(".ssh/authorized_keys")) {
-						authorizedKeys.load(in);
-					}
-				} catch(SftpStatusException e) {
-					
-				}
-				
-				for(Map.Entry<SshPublicKey, String> entry : keys.entrySet()) {
-					SshPublicKey key = entry.getKey();
-					String comment = entry.getValue();
-					
-					if(!authorizedKeys.isAuthorizedKey(key)) {
+					try {
+						sftp.stat(".ssh/authorized_keys");
+						writeLine("Opening ~/.ssh/authorized_keys");
+						try(InputStream in  = sftp.getInputStream(".ssh/authorized_keys")) {
+							authorizedKeys.load(in);
+						}
+					} catch(SftpStatusException e) {
 						
-						answer = promptForYesNo(String.format("Do you want to add the %s key %s %s? ", 
-								StringUtils.defaultIfBlank(comment, "[No Comment]"), key.getAlgorithm(), key.getFingerprint()));
-						if("YES".equalsIgnoreCase(answer) || "Y".equalsIgnoreCase(answer)) {
-							writeLine(String.format("Adding %s %s", key.getAlgorithm(), key.getFingerprint()));
-							authorizedKeys.addKey(key, comment);
+					}
+					
+					for(Map.Entry<SshPublicKey, String> entry : keys.entrySet()) {
+						SshPublicKey key = entry.getKey();
+						String comment = entry.getValue();
+						
+						if(!authorizedKeys.isAuthorizedKey(key)) {
+							
+							answer = promptForYesNo(String.format("Do you want to add the %s key %s %s? ", 
+									StringUtils.defaultIfBlank(comment, "[No Comment]"), key.getAlgorithm(), key.getFingerprint()));
+							if("YES".equalsIgnoreCase(answer) || "Y".equalsIgnoreCase(answer)) {
+								writeLine(String.format("Adding %s %s", key.getAlgorithm(), key.getFingerprint()));
+								authorizedKeys.addKey(key, comment);
+							}
 						}
 					}
+					
+					writeLine("Saving ~/.ssh/authorized_keys");
+					
+					try(OutputStream out = sftp.getOutputStream(".ssh/authorized_keys")) {
+						out.write(authorizedKeys.getFormattedFile().getBytes("UTF-8"));
+					}
+					
+					sftp.chmod(0644, ".ssh/authorized_keys");
+					
+					promptForAnswer("Authorized keys configuration complete. Press a key to continue.");
 				}
-				
-				writeLine("Saving ~/.ssh/authorized_keys");
-				
-				try(OutputStream out = sftp.getOutputStream(".ssh/authorized_keys")) {
-					out.write(authorizedKeys.getFormattedFile().getBytes("UTF-8"));
-				}
-				
-				sftp.chmod(0644, ".ssh/authorized_keys");
-				
-				promptForAnswer("Authorized keys configuration complete. Press a key to continue.");
 			}
 		} catch(Throwable t) {
 			writeLine(t.getMessage());
