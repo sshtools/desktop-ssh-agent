@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -81,6 +82,8 @@ import com.github.javakeyring.Keyring;
 import com.github.javakeyring.PasswordAccessException;
 import com.sshtools.agent.InMemoryKeyStore;
 import com.sshtools.agent.KeyConstraints;
+import com.sshtools.agent.KeyStore;
+import com.sshtools.agent.exceptions.KeyTimeoutException;
 import com.sshtools.agent.openssh.OpenSSHConnectionFactory;
 import com.sshtools.agent.server.SshAgentServer;
 import com.sshtools.agent.win32.AbstractNamedPipe;
@@ -97,6 +100,7 @@ import com.sshtools.common.ssh.components.SshPrivateKey;
 import com.sshtools.common.ssh.components.SshPublicKey;
 import com.sshtools.common.ssh.components.jce.JCEProvider;
 import com.sshtools.desktop.agent.Settings.IconMode;
+import com.sshtools.desktop.agent.sshteam.SshTeamHelper;
 import com.sshtools.desktop.agent.swt.ConnectionDialog;
 import com.sshtools.desktop.agent.swt.CustomDialog;
 import com.sshtools.desktop.agent.swt.InputForm;
@@ -114,7 +118,7 @@ import com.sshtools.twoslices.ToasterSettings;
 import pt.davidafsilva.apple.OSXKeychain;
 import pt.davidafsilva.apple.OSXKeychainException;
 
-public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKeystoreListener {
+public class DesktopAgent extends AbstractAgentProcess {
 
 	public final static String WINDOWS_NAMED_PIPE = "mobile-ssh-agent";
 	public final static String SSH_AGENT_PIPE = AbstractNamedPipe.NAMED_PIPE_PREFIX + WINDOWS_NAMED_PIPE;
@@ -154,6 +158,8 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 	Keyring keyring = null;
 	OSXKeychain keychain = null;
 	
+	ConnectionStore connectionStore = new ConnectionStore();
+	
 	protected DesktopAgent(Display display, Runnable restartCallback, Runnable shutdownCallback) throws IOException {
 
 		super();
@@ -171,7 +177,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			Settings.getInstance().load();
 			
 			keystore = new MobileDeviceKeystore(this, localKeys);
-			keystore.setListener(this);
+			//keystore.setListener(this);
 			
 			if (SystemUtils.IS_OS_WINDOWS) {
 				startupWindows();
@@ -203,7 +209,8 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 				public void run() {
 					try {
 						
-						boolean hasCredentials = !StringUtils.isAnyBlank(hostname, username);
+						boolean hasCredentials = !StringUtils.isAnyBlank(Settings.getInstance().getLogonboxDomain(), 
+								Settings.getInstance().getLogonboxUsername());
 						
 						if(hasCredentials) {
 							boolean wasOffline = !online.getAndSet(keystore.ping());
@@ -211,14 +218,14 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 								if(Log.isInfoEnabled()) {
 									Log.info("The agent is back online");
 								}
-								Toast.toast(ToastType.INFO, "Desktop SSH Agent", String.format("The agent has connected to %s", hostname));
+								Toast.toast(ToastType.INFO, "Desktop SSH Agent", String.format("The agent has connected to %s", Settings.getInstance().getLogonboxDomain()));
 								firstRun = true;
 							} else if(!online.get() && (firstRun || !wasOffline)) {
 								if(Log.isInfoEnabled()) {
 									Log.info("The agent is offline");
 								}
 								Toast.toast(ToastType.WARNING, "Desktop SSH Agent", String.format("The agent %s connected to %s", 
-										firstRun ? "could not be " : "is no longer", hostname));
+										firstRun ? "could not be " : "is no longer", Settings.getInstance().getLogonboxDomain()));
 							}
 							
 							if(online.get() && (firstRun || System.currentTimeMillis() - lastUpdated > 60000L * 10)) {
@@ -236,7 +243,13 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 					}
 				}
 			}, 0L, 30000L);
-					
+
+			if(Settings.getInstance().isSynchronizeKeys()) {
+				SshTeamHelper.verifyAccess(Settings.getInstance().getSshteamUsername(),
+						Settings.getInstance().getSshteamDomain(),
+						Settings.getInstance().getSshteamPort(),
+						localKeys);
+			}
 			
 			runSWT();
 		} catch (Throwable t) {
@@ -249,6 +262,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		if (SystemUtils.IS_OS_MAC) {
 			try {
 				keychain = OSXKeychain.getInstance();
+				Log.info("Loaded OSX Key Chain");
 			} catch (OSXKeychainException e) {
 				Log.error("No support for OSX Key Chain", e);
 			}
@@ -256,6 +270,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		
 			try {
 				keyring = Keyring.create();
+				Log.info("Loaded key ring");
 			} catch (BackendNotSupportedException e) {
 				Log.error("No support for key ring", e);
 			}
@@ -352,23 +367,37 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
             			}
             		} else {
             			try {
-						pair = file.toKeyPair(null);
-					} catch (InvalidPassphraseException e) {
-						SWTUtil.showError("Add Key", "An unexpected passphrase error occurred on a key that reported to not have any passphrase.");
-					}
+            				pair = file.toKeyPair(null);
+						} catch (IOException | InvalidPassphraseException e) {
+							SWTUtil.showError("Load Key", "An unexpected error occurred loading the key " + keyfile.getName());
+						}
             		}
             		
             		if(pair==null) {
-            			SWTUtil.showError("Add Key", String.format("The key %s could not be read.", keyfile.getName()));
+            			SWTUtil.showError("Load Key", String.format("The key %s could not be read.", keyfile.getName()));
             		} else {
-            			localKeys.addKey(pair, keyfile.getName(), new KeyConstraints());
+            			localKeys.addKey(pair, keyfile.getName(), new ExtendedKeyInfo(keyfile));
             		}
     		
             	} catch(IOException ex) {
             		SWTUtil.showError("Add Key", String.format("An unexpected error occurred.\r\n\r\n%s", ex.getMessage()));
             	} 
 		}
+		Log.info("Got {} private keys", localKeys.size());
+	}
+	
+	
+	class ExtendedKeyInfo extends KeyConstraints {
+		File file;
 		
+		ExtendedKeyInfo(File file) {
+			super();
+			this.file = file;
+		}
+		
+		public File getFile() {
+			return file;
+		}
 	}
 
 	private void runSWT() {
@@ -457,7 +486,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			}
 
 			connections.clear();
-			for(JsonConnection con : keystore.getConnections()) {
+			for(JsonConnection con : connectionStore.getConnections()) {
 
 				if(!deletedConnections.containsKey(con.getName())) {
 					if(Log.isInfoEnabled()) {
@@ -1319,7 +1348,7 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 					new Thread() {
 						public void run() {
 							try {
-								keystore.deleteConnection(con);
+								connectionStore.deleteConnection(con);
 								connections.remove(con.getName());
 								if(Settings.getInstance().isFavorite(con.getName())) {
 									Settings.getInstance().removeFavorite(con.getName());
@@ -1875,16 +1904,6 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		});
 
 	}
-	@Override
-	public boolean addKey(SshPrivateKey prvkey, SshPublicKey pubkey, String description, KeyConstraints cs)
-			throws IOException {
-
-		Log.info("Adding key {}", description);
-
-		ImportKey importKey = new ImportKey(null, prvkey, pubkey, description, cs);
-		display.syncExec(importKey);
-		return importKey.isSuccess();
-	}
 
 	class ImportKey implements Runnable {
 
@@ -1910,11 +1929,39 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 			pair.setPublicKey(pubkey);
 
 			try {
+				
+				Settings.getInstance().addPrivateKey(pair.getPublicKey(), keyfile);
+				
 				localKeys.addKey(pair, description, cs);
 				
-				if(keyfile!=null) {
-					Settings.getInstance().addTemporaryKey(pair.getPublicKey(), keyfile);
+				if(Settings.getInstance().isSynchronizeKeys()) {
+					
+					SshPublicKey authorizationKey = getAuthorizationKey();
+					if(Objects.isNull(authorizationKey)) {
+						SWTUtil.showInformation("SSH Team Sync", "Synchronization is enabled but no suitable private keys were found for authenticating with your ssh.team domain.");
+					} else {
+						try {
+							SshTeamHelper.addKey(Settings.getInstance().getSshteamUsername(), 
+									Settings.getInstance().getSshteamDomain(),
+									Settings.getInstance().getSshteamPort(),
+									authorizationKey,
+									localKeys,
+									keyfile.getName(),
+									pubkey);
+							
+							Toast.toast(ToastType.INFO, "Desktop SSH Agent", 
+									String.format("The key %s was uploaded to %s", keyfile.getName(),
+											Settings.getInstance().getSshteamDomain()));
+							
+						} catch (NoSuchAlgorithmException | InterruptedException | URISyntaxException | SshException
+								| KeyTimeoutException e) {
+							Log.error("Failed to synchronize", e);
+							SWTUtil.showError("SSH Team Synchronization", "The key could not be synchronized with your ssh.team account. Check logs for more information.");
+						}
+					}
+							
 				}
+				
 				
 				displayKeys();
 				ret = true;
@@ -1923,78 +1970,6 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 				ret = false;
 			}
 			
-		}
-
-		boolean isSuccess() {
-			return ret;
-		}
-	}
-	
-	
-	class DeleteAllKeys implements Runnable {
-
-		private static final String YES_I_WANT_TO_DELETE_ALL_KEYS = "Yes, I want to delete all keys";
-
-		boolean ret;
-
-		final String DELETE_ALL = "Delete All Keys";
-		final String DELETE_TEMPORARY = "Delete Local Only";
-		final String DELETE_CANCEL = "Cancel";
-
-		DeleteAllKeys() {
-
-		}
-
-		public void run() {
-			CustomDialog dialog = new CustomDialog(new Shell(), SWT.ICON_QUESTION, 0,
-					DELETE_TEMPORARY, DELETE_ALL, DELETE_CANCEL);
-			dialog.setText("Delete Keys");
-			dialog.setMessage(
-					"A request has been received to delete all keys?\r\n\r\n"
-					+ "Do you want to delete all keys, or just temporary keys?");
-
-			String result = dialog.open();
-
-			if (result == DELETE_ALL) {
-				
-				CustomDialog dialog2 = new CustomDialog(new Shell(), SWT.ICON_WARNING, 0,
-						YES_I_WANT_TO_DELETE_ALL_KEYS, DELETE_CANCEL);
-				dialog2.setText("Confirm Delete");
-				dialog2.setMessage(
-						"You are about to delete all keys from this computer.\r\n"
-					   + "NOTE: This excludes keys that imported from your authenticator device.\r\n\r\n"
-					   + "Are you sure you want to do this?");
-
-				String result2 = dialog2.open();
-				
-				if(result2 == YES_I_WANT_TO_DELETE_ALL_KEYS) {
-					
-					try {
-
-						
-						localKeys.deleteAllKeys();
-						Settings.getInstance().removeAllKeys();
-						ret = true;
-						
-					} catch (IOException e) {
-						SWTUtil.showError("Delete Keys", e.getMessage());
-					}  catch(IllegalStateException  e) {
-						// Ignore
-					}
-					
-				}
-				
-			} else if (result == DELETE_TEMPORARY) {
-				
-				localKeys.deleteAllKeys();
-				try {
-					Settings.getInstance().removeAllKeys();
-				} catch (IOException e) {
-					SWTUtil.showError("Delete Keys", e.getMessage());
-				}
-				ret = true;
-			}
-
 		}
 
 		boolean isSuccess() {
@@ -2035,7 +2010,38 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 								SWTUtil.showError("Delete Key", "You cannot delete keys from your authenticator device!");
 																
 							} else {
-								Settings.getInstance().removeTemporaryKey(key);
+								
+								String name = localKeys.getPublicKeys().get(key);
+								
+								if(Settings.getInstance().isSynchronizeKeys()) {
+									SshPublicKey authorizationKey = getAuthorizationKey();
+									if(Objects.isNull(authorizationKey)) {
+										SWTUtil.showInformation("SSH Team Sync", "Synchronization is enabled but no suitable private keys were found for authenticating with your ssh.team domain.");
+									} else {
+										try {
+											SshTeamHelper.removeKey(Settings.getInstance().getSshteamUsername(), 
+													Settings.getInstance().getSshteamDomain(),
+													Settings.getInstance().getSshteamPort(),
+													authorizationKey,
+													localKeys,
+													name,
+													key);
+											
+											Toast.toast(ToastType.INFO, "Desktop SSH Agent", 
+													String.format("The key %s was removed to %s", name,
+															Settings.getInstance().getSshteamDomain()));
+											
+										} catch (NoSuchAlgorithmException | InterruptedException | URISyntaxException | SshException
+												| KeyTimeoutException e) {
+											Log.error("Failed to synchronize", e);
+											SWTUtil.showError("SSH Team Synchronization", "The key could not be synchronized with your ssh.team account. Check logs for more information.");
+										}
+									}
+								}
+								
+								ExtendedKeyInfo info = (ExtendedKeyInfo) localKeys.getKeyConstraints(key);
+								Settings.getInstance().removePrivateKey(info.getFile());
+
 								localKeys.deleteKey(key);
 
 								displayKeys();
@@ -2058,28 +2064,6 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		}
 	}
 
-	@Override
-	public boolean deleteAllKeys() {
-		DeleteAllKeys deleteKeyTask = new DeleteAllKeys();
-		display.syncExec(deleteKeyTask);
-		return deleteKeyTask.isSuccess();
-	}
-
-	@Override
-	public void onKeysChanged() {
-		
-		new Thread() {
-			public void run() {
-				
-				if(online.get()) {
-					loadDeviceKeys(false);
-					displayKeys();
-				}
-			}
-		}.start();
-		
-	}
-
 	private void loadDeviceKeys(boolean reconnect) {
 		synchronized (deviceKeys) {
 			try {
@@ -2092,7 +2076,6 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		}
 	}
 	
-	@Override
 	public boolean deleteKey(SshPublicKey key) {
 		DeleteKey deleteKeyTask = new DeleteKey(key);
 		display.syncExec(deleteKeyTask);
@@ -2193,10 +2176,10 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		}
 		
 		if(Objects.isNull(oldName)) {
-			con = keystore.createConnection(name, hostname, port, 
+			con = connectionStore.createConnection(name, hostname, port, 
 					username, aliases,Collections.emptySet());
 		} else {
-			con = keystore.updateConnection(oldName, name, hostname, 
+			con = connectionStore.updateConnection(oldName, name, hostname, 
 					port, username, aliases, Collections.emptySet());
 		}
 		
@@ -2225,4 +2208,19 @@ public class DesktopAgent extends AbstractAgentProcess implements MobileDeviceKe
 		tmp.putAll(localKeys.getPublicKeys());
 		return tmp;
 	}
+
+	public KeyStore getLocalKeyStore() {
+		return localKeys;
+	}
+	
+	public SshPublicKey getAuthorizationKey() {
+		for(SshPublicKey key : localKeys.getPublicKeys().keySet()) {
+			KeyConstraints c = localKeys.getKeyConstraints(key);
+			if(c.isSSH1Compatible()) {
+				return key;
+			}
+		}
+		return null;
+	}
+
 }

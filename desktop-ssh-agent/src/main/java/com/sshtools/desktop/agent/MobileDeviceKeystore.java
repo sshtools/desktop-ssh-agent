@@ -20,25 +20,18 @@ package com.sshtools.desktop.agent;
 
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hypersocket.json.JsonClient;
 import com.hypersocket.json.JsonResponse;
 import com.hypersocket.json.JsonStatusException;
@@ -63,43 +56,11 @@ public class MobileDeviceKeystore implements KeyStore {
 	DesktopAgent agent;
 	MobileDeviceKeystoreListener listener;
 	KeyStore localKeystore;
-	
-	Set<JsonConnection> localConnections;
-	
+
 	public MobileDeviceKeystore(DesktopAgent agent,
 			KeyStore localKeystore) throws IOException {
 		this.agent = agent;
 		this.localKeystore = localKeystore;
-		
-		loadCachedConnections();
-	}
-	
-	private void loadCachedConnections() {
-		
-		File file = new File(AbstractAgentProcess.CONF_FOLDER, "connections.json");
-		
-		localConnections = new HashSet<>();
-		if(file.exists())  {
-			
-			ObjectMapper mapper = new ObjectMapper();
-			
-			try {
-				localConnections.addAll(mapper.readValue(IOUtils.readUTF8StringFromFile(file), new TypeReference<List<JsonConnection>>() { }));
-			} catch (IOException e) {
-				Log.error("Could not read local connection cache", e);
-			}
-		}
-	}
-	
-	private void saveCachedConnections() {
-		
-		File file = new File(AbstractAgentProcess.CONF_FOLDER, "connections.json");
-		ObjectMapper mapper = new ObjectMapper();
-		try {
-			IOUtils.writeUTF8StringToFile(file, mapper.writeValueAsString(localConnections));
-		} catch (IOException e) {
-			Log.error("Could not write local connection cache", e);
-		}
 	}
 	
 	public void setListener(MobileDeviceKeystoreListener listener) {
@@ -133,7 +94,8 @@ public class MobileDeviceKeystore implements KeyStore {
 	
 	private void verifyClient() throws IOException {
 		if(Objects.isNull(client)) {
-			this.client = new JsonClient(agent.getHostname(), agent.getPort(), !agent.isStrictSSL(), false);
+			this.client = new JsonClient(Settings.getInstance().getLogonboxDomain(), 
+					Settings.getInstance().getLogonboxPort(), !Settings.getInstance().isStrictSSL(), false);
 			this.client.setPath("/app");
 		}
 	}
@@ -164,14 +126,15 @@ public class MobileDeviceKeystore implements KeyStore {
 			client = null;
 		}
 		
-		if(StringUtils.isAnyBlank(agent.getUsername(), agent.getHostname())) {
+		if(StringUtils.isAnyBlank(Settings.getInstance().getLogonboxUsername(),
+				Settings.getInstance().getLogonboxDomain())) {
 			return Collections.emptyMap();
 		}
 		
  		Map<SshPublicKey, String> results = new HashMap<>();
 		
 		try(InputStream in = IOUtils.toInputStream(
-				getClient().doGet("api/authenticator/authorizedKeys/" + agent.getUsername()), "UTF-8")) {
+				getClient().doGet("api/authenticator/authorizedKeys/" + Settings.getInstance().getLogonboxUsername()), "UTF-8")) {
 			
 			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 			String key;
@@ -198,44 +161,7 @@ public class MobileDeviceKeystore implements KeyStore {
 		return results;
 	}
 
-	public  List<JsonConnection> getConnections() {
-		
-//		if(!ping()) {
-//			return new ArrayList<>(localConnections);
-//		}
-		
-//		try {
-		
-//			JsonConnectionList connections = getClient().doPost(
-//					"api/serverConnections/myServerConnections", 
-//						JsonConnectionList.class,
-//						generateAuthorizationParameters());
-//			
-//			if(!connections.isSuccess()) {
-//				throw new IllegalStateException(connections.getError());
-//			}
-//			
-//			List<JsonConnection> cons = new ArrayList<JsonConnection>();
-//			cons.addAll(Arrays.asList(connections.getResources()));
-//			
-//			for(JsonConnection c : cons) {
-//				c.setRemote(true);
-//				localConnections.add(c);
-//			}
-			
-			return new ArrayList<>(localConnections);
-			
-//		} catch(JsonStatusException e) { 
-//			if(e.getStatusCode()==403) {
-//				throw new IllegalStateException("This device has not been authorized to access the users account.");
-//			} else {
-//				throw new IllegalStateException(e.getMessage(), e);
-//			}
-//		} catch(IOException e ) {
-//			Log.error("Failed to list connections", e);
-//			throw new IllegalStateException(e.getMessage(), e);
-//		} 
-	}
+	
 	
 	@Override
 	public KeyConstraints getKeyConstraints(SshPublicKey key) {
@@ -253,71 +179,17 @@ public class MobileDeviceKeystore implements KeyStore {
 
 	@Override
 	public boolean addKey(SshPrivateKey prvkey, SshPublicKey pubkey, String description, KeyConstraints cs) {
-		
-		try { 
-			
-			Map<SshPublicKey, String> deviceKeys = getDeviceKeys(false);
-			if(deviceKeys.containsKey(pubkey)) {
-				Log.error("The key {} is already installed as a device key", pubkey.getFingerprint());
-				return false;
-			}
-			if(listener!=null) {
-				return listener.addKey(prvkey, pubkey, description, cs);
-			} else {
-				return false;
-			}
-		} catch (IOException | SshException e) {
-			Log.error("Failed to process addKey", e);
-			return false;
-		}
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public boolean addKey(SshKeyPair pair, String description, KeyConstraints cs) {
-		
-		try {
-			Map<SshPublicKey, String> deviceKeys = getDeviceKeys(false);
-			if(deviceKeys.containsKey(pair.getPublicKey())) {
-				Log.error("The key {} is already installed as a device key", pair.getPublicKey().getFingerprint());
-				return false;
-			}
-			
-			if(listener!=null) {
-				return listener.addKey(pair.getPrivateKey(), pair.getPublicKey(), description, cs);
-			} else {
-				return false;
-			}
-		} catch (IOException | SshException e) {
-			Log.error("Failed to process addKey", e);
-			return false;
-		}
-	}
-
-	public void addTemporaryKey(SshKeyPair pair,  String description, KeyConstraints cs) throws IOException {
-		localKeystore.addKey(pair, description, cs);
-		
-		if(listener!=null) {
-			listener.onKeysChanged();
-		}
-	}
-	
-	public void removeTemporaryKey(SshPublicKey key) throws IOException {
-		
-		localKeystore.deleteKey(key);
-		
-		if(listener!=null) {
-			listener.onKeysChanged();
-		}
+		throw new UnsupportedOperationException();
 	}
 	
 	@Override
 	public boolean deleteAllKeys() {
-		
-		if(listener!=null) {
-			return listener.deleteAllKeys();
-		}
-		
-		return false;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
@@ -367,7 +239,7 @@ public class MobileDeviceKeystore implements KeyStore {
 		
 		try {
 			JsonSignRequestStatus request = getClient().doPost("api/authenticator/signPayload", JsonSignRequestStatus.class,
-					new RequestParameter("username", agent.getUsername()),
+					new RequestParameter("username", Settings.getInstance().getLogonboxUsername()),
 					new RequestParameter("remoteName", "Desktop Agent"),
 					new RequestParameter("authorizeText", "Login"),
 					new RequestParameter("flags", String.valueOf(flags)),
@@ -452,141 +324,4 @@ public class MobileDeviceKeystore implements KeyStore {
 		}
 		throw new IllegalStateException(String.format("No key name for ", SshKeyUtils.getFingerprint(key)));
 	}
-
-	public JsonConnection createConnection(String name, String hostname, Integer port, String remoteUsername, Set<String> aliases, Set<SshPublicKey> hostKeys) {
-		
-		try {
-			Set<String> keys = new TreeSet<String>();
-			for(SshPublicKey key : hostKeys) {
-				keys.add(SshKeyUtils.getOpenSSHFormattedKey(key));
-			}
-			
-//			if(!ping()) {
-				
-				JsonConnection con = new JsonConnection();
-				con.setName(name);
-				con.setHostname(hostname);
-				con.setPort(port);
-				con.setUsername(remoteUsername);
-				con.setAliases(aliases.toArray(new String[0]));
-				con.setHostKeys(keys.toArray(new String[0]));
-				
-				localConnections.add(con);
-				saveCachedConnections();
-				return con;
-//			}
-
-			
-//			JsonConnectionResourceStatus result = getClient().doPost(
-//					"api/serverConnections/create", 
-//					JsonConnectionResourceStatus.class,
-//					generateAuthorizationParameters(
-//						new RequestParameter("name", name),
-//						new RequestParameter("hostname", hostname),
-//						new RequestParameter("port", String.valueOf(port)),
-//						new RequestParameter("remoteUsername", remoteUsername),
-//						new RequestParameter("aliases", StringUtils.join(aliases, ",")),
-//						new RequestParameter("hostKeys", StringUtils.join(keys, ","))));
-//			
-//			if(!result.isSuccess()) {
-//				throw new IllegalStateException(result.getMessage());
-//			}
-//			
-//			JsonConnection con = result.getResource();
-//			con.setRemote(true);
-//			localConnections.add(con);
-//			saveCachedConnections();
-//			return con;
-//			
-//		} catch(JsonStatusException e) { 
-//			if(e.getStatusCode()==403) {
-//				throw new IllegalStateException("This device has not been authorized to access the users account.");
-//			} else {
-//				throw new IllegalStateException(e.getMessage(), e);
-//			}
-		} catch(IOException e ) {
-			Log.error("Failed to list connections", e);
-			throw new IllegalStateException(e.getMessage(), e);
-		} 
-	}
-
-	public void deleteConnection(JsonConnection con) throws IOException {
-		
-		localConnections.remove(con);
-		saveCachedConnections();
-		
-	}
-
-	public JsonConnection updateConnection(String oldName, String name, String hostname, Integer port, String remoteUsername, Set<String> aliases, Set<SshPublicKey> hostKeys) {
-
-		try {
-			Set<String> keys = new TreeSet<String>();
-			for(SshPublicKey key : hostKeys) {
-				keys.add(SshKeyUtils.getOpenSSHFormattedKey(key));
-			}
-			
-			JsonConnection con = null;
-			for(JsonConnection c : localConnections) {
-				if(c.getName().equals(oldName)) {
-					con = c;
-					break;
-				}
-			}
-			
-			if(Objects.isNull(con)) {
-				return createConnection(name, hostname, port, remoteUsername, aliases, hostKeys);
-			}
-
-//			if(!ping()) {
-				
-				if(Objects.isNull(con)) {
-					con = new JsonConnection();
-				}
-				con.setName(name);
-				con.setHostname(hostname);
-				con.setPort(port);
-				con.setUsername(remoteUsername);
-				con.setAliases(aliases.toArray(new String[0]));
-				con.setHostKeys(keys.toArray(new String[0]));
-				
-				saveCachedConnections();
-				return con;
-//			}
-			
-//			localConnections.remove(con);
-//			
-//			JsonConnectionResourceStatus result = getClient().doPost(
-//					Objects.nonNull(con) ? "api/serverConnections/update" : "api/serverConnections/create", 
-//					JsonConnectionResourceStatus.class,
-//					generateAuthorizationParameters(
-//					    new RequestParameter("id", con.getId().toString()),
-//						new RequestParameter("name", name),
-//						new RequestParameter("hostname", hostname),
-//						new RequestParameter("port", String.valueOf(port)),
-//						new RequestParameter("remoteUsername", remoteUsername),
-//						new RequestParameter("aliases", StringUtils.join(aliases, ",")),
-//						new RequestParameter("hostKeys", StringUtils.join(keys, ","))));
-//					
-//			if(!result.isSuccess()) {
-//				throw new IllegalStateException(result.getError());
-//			}
-//			
-//			con =  result.getResource();
-//			con.setRemote(true);
-//			localConnections.add(con);
-//			saveCachedConnections();
-//			return con;
-//			
-//		} catch(JsonStatusException e) { 
-//			if(e.getStatusCode()==403) {
-//				throw new IllegalStateException("This device has not been authorized to access the users account.");
-//			} else {
-//				throw new IllegalStateException(e.getMessage(), e);
-//			}
-		} catch(IOException e ) {
-			Log.error("Failed to list connections", e);
-			throw new IllegalStateException(e.getMessage(), e);
-		} 
-	}
-
 }

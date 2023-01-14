@@ -47,10 +47,19 @@ public class Settings {
 	private boolean useBuiltInTerminal;
 
 	private Set<String> favoriteIds = new HashSet<String>();
-	private Map<SshPublicKey,File> localKeys= new HashMap<>();
 	private Set<File> keyfiles = new HashSet<>();
 	private IconMode iconMode = IconMode.AUTO;
 	private boolean synchronizeKeys = false;
+	
+	String logonboxDomain;
+	int logonboxPort = 443;
+	String logonboxUsername;
+	
+	String sshteamDomain;
+	int sshteamPort = 443;
+	String sshteamUsername;
+	
+	private boolean strictSSL = true;
 	
 	Settings() {
 		terminalCommand = "";
@@ -76,6 +85,17 @@ public class Settings {
 			
 			iconMode = IconMode.valueOf(properties.getProperty("iconMode", IconMode.AUTO.name()));
 
+			logonboxDomain = properties.getProperty("logonboxDomain");
+			logonboxUsername = properties.getProperty("logonboxUsername");
+			logonboxPort = Integer.parseInt(properties.getProperty("logonboxPort", "443"));
+			
+			sshteamDomain = properties.getProperty("sshteamDomain");
+			sshteamUsername = properties.getProperty("sshteamUsername");
+			sshteamPort = Integer.parseInt(properties.getProperty("sshteamPort", "443"));
+			
+			synchronizeKeys = Boolean.valueOf(properties.getProperty("synchornizedKeys", "false"));
+			strictSSL = Boolean.valueOf(properties.getProperty("strictSSL", "true"));
+			
 			if(properties.containsKey("favorites")) {
 				String[] names = properties.get("favorites").toString().split(",");
 				for(String name : names) {
@@ -104,10 +124,21 @@ public class Settings {
 		properties.put("favorites", HypersocketUtils.csv(favoriteIds.toArray()));
 		properties.put("useBuiltInTerminal", String.valueOf(useBuiltInTerminal));
 
+		properties.put("logonboxDomain", logonboxDomain);
+		properties.put("logonboxUsername", logonboxUsername);
+		properties.put("logonboxPort", String.valueOf(logonboxPort));
+		
+		properties.put("sshteamDomain", sshteamDomain);
+		properties.put("sshteamUsername", sshteamUsername);
+		properties.put("sshteamPort", String.valueOf(sshteamPort));
+		
+		properties.put("synchronizeKeys", String.valueOf(synchronizeKeys));
+		properties.put("strictSSL", String.valueOf(strictSSL));
+		
 		properties.put("iconMode", iconMode.name());
 		
 		StringBuffer buf = new StringBuffer();
-		for(File keyfile : localKeys.values()) {
+		for(File keyfile : keyfiles) {
 			if(buf.length() > 0) {
 				buf.append(File.pathSeparator);
 			}	
@@ -117,12 +148,10 @@ public class Settings {
 		
 		SETTINGS_FILE.getParentFile().mkdirs();
 		try(FileOutputStream out = new FileOutputStream(SETTINGS_FILE)) {
-			properties.store(out, "Mobile Agent Preferences");
+			properties.store(out, "Desktop SSH Agent Preferences");
 		}
-		
-		AbstractAgentProcess.checkFilePermissions(SETTINGS_FILE.toPath());
-		
 	}
+	
 	public static Settings getInstance() {
 		return instance ==  null ? instance = new Settings() : instance;
 	}
@@ -174,18 +203,18 @@ public class Settings {
 		return useBuiltInTerminal;
 	}
 
-	public void addTemporaryKey(SshPublicKey key, File keyfile) throws FileNotFoundException, IOException {
-		localKeys.put(key, keyfile);
+	public void addPrivateKey(SshPublicKey key, File keyfile) throws FileNotFoundException, IOException {
+		keyfiles.add(keyfile);
 		save();
 	}
 	
-	public void removeTemporaryKey(SshPublicKey key) throws FileNotFoundException, IOException {
-		localKeys.remove(key);
+	public void removePrivateKey(File keyfile) throws FileNotFoundException, IOException {
+		keyfiles.remove(keyfile);
 		save();
 	}
 
 	public void removeAllKeys() throws FileNotFoundException, IOException {
-		localKeys.clear();
+		keyfiles.clear();
 		save();
 	}
 
@@ -204,6 +233,62 @@ public class Settings {
 
 	public void setSynchronizeKeys(boolean synchronizeKeys) {
 		this.synchronizeKeys = synchronizeKeys;
+	}
+
+	public String getLogonboxDomain() {
+		return logonboxDomain;
+	}
+
+	public void setLogonboxDomain(String logonboxDomain) {
+		this.logonboxDomain = logonboxDomain;
+	}
+
+	public int getLogonboxPort() {
+		return logonboxPort;
+	}
+
+	public void setLogonboxPort(int logonboxPort) {
+		this.logonboxPort = logonboxPort;
+	}
+
+	public String getLogonboxUsername() {
+		return logonboxUsername;
+	}
+
+	public void setLogonboxUsername(String logonboxUsername) {
+		this.logonboxUsername = logonboxUsername;
+	}
+
+	public String getSshteamDomain() {
+		return sshteamDomain;
+	}
+
+	public void setSshteamDomain(String sshteamDomain) {
+		this.sshteamDomain = sshteamDomain;
+	}
+
+	public int getSshteamPort() {
+		return sshteamPort;
+	}
+
+	public void setSshteamPort(int sshteamPort) {
+		this.sshteamPort = sshteamPort;
+	}
+
+	public String getSshteamUsername() {
+		return sshteamUsername;
+	}
+
+	public void setSshteamUsername(String sshteamUsername) {
+		this.sshteamUsername = sshteamUsername;
+	}
+
+	public boolean isStrictSSL() {
+		return strictSSL;
+	}
+
+	public void setStrictSSL(boolean strictSSL) {
+		this.strictSSL = strictSSL;
 	}
 	
 }

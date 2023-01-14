@@ -33,6 +33,7 @@ import org.eclipse.swt.widgets.Text;
 
 public class InputForm extends SafeThreadedForm {
 	
+	Display display;
 	Label label1, label2;
 	Text inputField;
 	Text text;
@@ -46,12 +47,12 @@ public class InputForm extends SafeThreadedForm {
 	
 	public InputForm(Display display, String title, String message, String defaultValue, boolean isPassword) {
 		
+		this.display = display;
 		this.title = title;
 		this.message = message;
 		this.defaultValue = defaultValue;
 		this.isPassword = isPassword;
 		
-		setupShell(display);
 	}
 	
 	public boolean isSuccess() {
@@ -63,6 +64,8 @@ public class InputForm extends SafeThreadedForm {
 	}
 	
 	public boolean show() {
+		
+		setupShell(display);
 		
 		executeThreadSafe(new Runnable() {
 			public void run() {
