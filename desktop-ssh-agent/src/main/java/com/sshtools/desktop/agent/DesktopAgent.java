@@ -243,13 +243,6 @@ public class DesktopAgent extends AbstractAgentProcess {
 					}
 				}
 			}, 0L, 30000L);
-
-			if(Settings.getInstance().isSynchronizeKeys()) {
-				SshTeamHelper.verifyAccess(Settings.getInstance().getSshteamUsername(),
-						Settings.getInstance().getSshteamDomain(),
-						Settings.getInstance().getSshteamPort(),
-						localKeys);
-			}
 			
 			runSWT();
 		} catch (Throwable t) {
@@ -383,12 +376,21 @@ public class DesktopAgent extends AbstractAgentProcess {
             		SWTUtil.showError("Add Key", String.format("An unexpected error occurred.\r\n\r\n%s", ex.getMessage()));
             	} 
 		}
+		
 		Log.info("Got {} private keys", localKeys.size());
+		
+		if(Settings.getInstance().isSynchronizeKeys()) {
+			SshTeamHelper.verifyAccess(Settings.getInstance().getSshteamUsername(),
+					Settings.getInstance().getSshteamDomain(),
+					Settings.getInstance().getSshteamPort(),
+					localKeys);
+		}
 	}
 	
 	
 	class ExtendedKeyInfo extends KeyConstraints {
 		File file;
+		boolean teamKey = false;
 		
 		ExtendedKeyInfo(File file) {
 			super();
@@ -397,6 +399,14 @@ public class DesktopAgent extends AbstractAgentProcess {
 		
 		public File getFile() {
 			return file;
+		}
+
+		public boolean isTeamKey() {
+			return teamKey;
+		}
+
+		public void setTeamKey(boolean teamKey) {
+			this.teamKey = teamKey;
 		}
 	}
 
@@ -1690,7 +1700,7 @@ public class DesktopAgent extends AbstractAgentProcess {
 								            		if(pair==null) {
 								            			SWTUtil.showError("Add Key", "The key file could not be read.");
 								            		} else {
-										        		ImportKey importKey = new ImportKey(keyfile, pair.getPrivateKey(), pair.getPublicKey(), keyfile.getName(), new KeyConstraints());
+										        		ImportKey importKey = new ImportKey(keyfile, pair.getPrivateKey(), pair.getPublicKey(), keyfile.getName(), new ExtendedKeyInfo(keyfile));
 										        		display.syncExec(importKey);
 								            		}
 								        		
@@ -1861,7 +1871,7 @@ public class DesktopAgent extends AbstractAgentProcess {
 				if (keyTable != null) {
 					keyTable.removeAll();
 
-					String[] titles = { "Description", "Source", "Type", "Fingerprint" };
+					String[] titles = { "Description", "Type", "Algorithm", "Fingerprint" };
 					for (int i = 0; i < titles.length; i++) {
 						TableColumn column = new TableColumn(keyTable, SWT.NONE);
 						column.setText(titles[i]);
@@ -1872,8 +1882,12 @@ public class DesktopAgent extends AbstractAgentProcess {
 						TableItem item = new TableItem(keyTable, SWT.NONE);
 						item.setData(entry.getKey());
 
+						ExtendedKeyInfo kc = (ExtendedKeyInfo) localKeys.getKeyConstraints(entry.getKey());
+						if(kc.isTeamKey()) {
+							item.setForeground(display.getSystemColor(SWT.COLOR_DARK_GREEN));
+						}
 						item.setText(0, entry.getValue());
-						item.setText(1, StringUtils.center("Local", 10));
+						item.setText(1, StringUtils.center(kc.isTeamKey() ? "Team" : "Personal", 10));
 						item.setText(2, entry.getKey().getAlgorithm());
 						item.setText(3, SshKeyUtils.getFingerprint(entry.getKey()));
 						
@@ -1911,10 +1925,10 @@ public class DesktopAgent extends AbstractAgentProcess {
 		SshPublicKey pubkey;
 		SshPrivateKey prvkey;
 		String description;
-		KeyConstraints cs;
+		ExtendedKeyInfo cs;
 		File keyfile;
 
-		ImportKey(File keyfile, SshPrivateKey prvkey, SshPublicKey pubkey, String description, KeyConstraints cs) {
+		ImportKey(File keyfile, SshPrivateKey prvkey, SshPublicKey pubkey, String description, ExtendedKeyInfo cs) {
 			this.keyfile = keyfile;
 			this.prvkey = prvkey;
 			this.pubkey = pubkey;
@@ -1948,6 +1962,8 @@ public class DesktopAgent extends AbstractAgentProcess {
 									localKeys,
 									keyfile.getName(),
 									pubkey);
+							
+							cs.setTeamKey(true);
 							
 							Toast.toast(ToastType.INFO, "Desktop SSH Agent", 
 									String.format("The key %s was uploaded to %s", keyfile.getName(),
@@ -2012,8 +2028,8 @@ public class DesktopAgent extends AbstractAgentProcess {
 							} else {
 								
 								String name = localKeys.getPublicKeys().get(key);
-								
-								if(Settings.getInstance().isSynchronizeKeys()) {
+								ExtendedKeyInfo kc = (ExtendedKeyInfo) localKeys.getKeyConstraints(key);
+								if(Settings.getInstance().isSynchronizeKeys() && kc.isTeamKey()) {
 									SshPublicKey authorizationKey = getAuthorizationKey();
 									if(Objects.isNull(authorizationKey)) {
 										SWTUtil.showInformation("SSH Team Sync", "Synchronization is enabled but no suitable private keys were found for authenticating with your ssh.team domain.");
@@ -2215,8 +2231,8 @@ public class DesktopAgent extends AbstractAgentProcess {
 	
 	public SshPublicKey getAuthorizationKey() {
 		for(SshPublicKey key : localKeys.getPublicKeys().keySet()) {
-			KeyConstraints c = localKeys.getKeyConstraints(key);
-			if(c.isSSH1Compatible()) {
+			ExtendedKeyInfo c = (ExtendedKeyInfo) localKeys.getKeyConstraints(key);
+			if(c.isTeamKey()) {
 				return key;
 			}
 		}

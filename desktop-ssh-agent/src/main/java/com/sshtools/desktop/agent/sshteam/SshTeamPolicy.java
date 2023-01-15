@@ -18,6 +18,52 @@
  */
 package com.sshtools.desktop.agent.sshteam;
 
-public class SshTeamPolicy {
+import java.util.Collection;
 
+import com.hypersocket.json.JsonResource;
+
+public class SshTeamPolicy extends JsonResource {
+
+	boolean enforcePolicy;
+	
+	int validForDays;
+	
+	int minimumRSA;
+	
+	Collection<PublicKeyType> requiredTypes;
+
+	public boolean isEnforcePolicy() {
+		return enforcePolicy;
+	}
+
+	public void setEnforcePolicy(boolean enforcePolicy) {
+		this.enforcePolicy = enforcePolicy;
+	}
+
+	public int getValidForDays() {
+		return validForDays;
+	}
+
+	public void setValidForDays(int validForDays) {
+		this.validForDays = validForDays;
+	}
+
+	public int getMinimumRSA() {
+		return minimumRSA;
+	}
+
+	public void setMinimumRSA(int minimumRSA) {
+		this.minimumRSA = minimumRSA;
+	}
+
+	public Collection<PublicKeyType> getRequiredTypes() {
+		return requiredTypes;
+	}
+
+	public void setRequiredTypes(Collection<PublicKeyType> requiredTypes) {
+		this.requiredTypes = requiredTypes;
+	}
+	
+	
+	
 }

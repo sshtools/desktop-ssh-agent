@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hypersocket.json.JsonRequestStatus;
 import com.sshtools.agent.KeyConstraints;
 import com.sshtools.agent.KeyStore;
 import com.sshtools.agent.exceptions.KeyTimeoutException;
@@ -61,12 +63,10 @@ public class SshTeamHelper {
 		params.put("authorizationKey", key);
 		params.put("authorization", generateAuthorization(username, sign, publicKey, nonce, key));
 		
-		return doRequest(String.format("https://%s:%d/app/api/authorizedKeys/list", hostname, port), params);
+		return doRequestString(String.format("https://%s:%d/app/api/authorizedKeys/list", hostname, port), params);
 	}
 
-
-
-	public static String getPolicy(String username, String hostname, int port, SshPublicKey publicKey, KeyStore sign) throws NoSuchAlgorithmException, IOException, InterruptedException, URISyntaxException, SshException, KeyTimeoutException {
+	public static SshTeamPolicy getPolicy(String username, String hostname, int port, SshPublicKey publicKey, KeyStore sign) throws NoSuchAlgorithmException, IOException, InterruptedException, URISyntaxException, SshException, KeyTimeoutException {
 		
 		long nonce = SecureRandom.getInstanceStrong().nextLong();
 		
@@ -77,12 +77,19 @@ public class SshTeamHelper {
 		params.put("authorizationKey", key);
 		params.put("authorization", generateAuthorization(username, sign, publicKey, nonce, key));
 		
-		return doRequest(String.format("https://%s:%d/app/api/authorizedKeys/policy", hostname, port), params);
+		String result = doRequestString(String.format("https://%s:%d/app/api/authorizedKeys/policy", hostname, port), params);
 		
+		ObjectMapper mapper = new ObjectMapper();
+		SshTeamPolicyStatus policy = mapper.readValue(result, SshTeamPolicyStatus.class);
+		
+		if(!policy.isSuccess()) {
+			throw new IOException(policy.getMessage());
+		}
+		return policy.getResource();
 	}
 	
 	
-	public static String addKey(String username, String hostname, int port, SshPublicKey publicKey, KeyStore sign, String name, SshPublicKey newKey) throws NoSuchAlgorithmException, IOException, InterruptedException, URISyntaxException, SshException, KeyTimeoutException {
+	public static void addKey(String username, String hostname, int port, SshPublicKey publicKey, KeyStore sign, String name, SshPublicKey newKey) throws NoSuchAlgorithmException, IOException, InterruptedException, URISyntaxException, SshException, KeyTimeoutException {
 		
 		long nonce = SecureRandom.getInstanceStrong().nextLong();
 		
@@ -96,10 +103,10 @@ public class SshTeamHelper {
 		params.put("name", name);
 		params.put("publicKey", pk);
 		
-		return doRequest(String.format("https://%s:%d/app/api/authorizedKeys/add", hostname, port), params);
+		doRequest(String.format("https://%s:%d/app/api/authorizedKeys/add", hostname, port), params);
 	}
 	
-	public static String removeKey(String username, String hostname, int port, SshPublicKey publicKey, KeyStore sign, String name, SshPublicKey newKey) throws NoSuchAlgorithmException, IOException, InterruptedException, URISyntaxException, SshException, KeyTimeoutException {
+	public static void removeKey(String username, String hostname, int port, SshPublicKey publicKey, KeyStore sign, String name, SshPublicKey newKey) throws NoSuchAlgorithmException, IOException, InterruptedException, URISyntaxException, SshException, KeyTimeoutException {
 		
 		long nonce = SecureRandom.getInstanceStrong().nextLong();
 		
@@ -113,7 +120,7 @@ public class SshTeamHelper {
 		params.put("name", name);
 		params.put("publicKey", pk);
 		
-		return doRequest(String.format("https://%s:%d/app/api/authorizedKeys/remove", hostname, port), params);
+		doRequest(String.format("https://%s:%d/app/api/authorizedKeys/remove", hostname, port), params);
 	}
 
 
@@ -144,7 +151,7 @@ public class SshTeamHelper {
 	}
 
 
-	private static String doRequest(String url, Map<String,String> params) throws IOException, InterruptedException, URISyntaxException {
+	private static String doRequestString(String url, Map<String,String> params) throws IOException, InterruptedException, URISyntaxException {
 		String form = params.entrySet()
 			    .stream()
 			    .map(e -> e.getKey() + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
@@ -158,6 +165,16 @@ public class SshTeamHelper {
 
 		HttpResponse<?> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 		return response.body().toString();
+	}
+	
+	private static void doRequest(String url, Map<String,String> params) throws IOException, InterruptedException, URISyntaxException {
+		
+	ObjectMapper mapper = new ObjectMapper();
+		JsonRequestStatus status = mapper.readValue(doRequestString(url, params), JsonRequestStatus.class);
+	
+		if(!status.isSuccess()) {
+			throw new IOException(status.getMessage());
+		} 
 	}
 
 

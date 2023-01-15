@@ -91,7 +91,7 @@ public class Settings {
 			sshteamUsername = properties.getProperty("sshteamUsername");
 			sshteamPort = Integer.parseInt(properties.getProperty("sshteamPort", "443"));
 			
-			synchronizeKeys = Boolean.valueOf(properties.getProperty("synchornizedKeys", "false"));
+			synchronizeKeys = Boolean.valueOf(properties.getProperty("synchronizeKeys", "false"));
 			strictSSL = Boolean.valueOf(properties.getProperty("strictSSL", "true"));
 			
 			if(properties.containsKey("favorites")) {

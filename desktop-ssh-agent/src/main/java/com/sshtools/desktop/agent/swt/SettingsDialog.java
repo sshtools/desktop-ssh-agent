@@ -160,7 +160,6 @@ public class SettingsDialog extends Dialog {
 			Settings.getInstance().setIconMode(IconMode.values()[iconMode.getSelectionIndex()]);
 			Settings.getInstance().setTerminalCommand(terminalCommand.getText());
 			Settings.getInstance().setTerminalArguments(terminalArguments.getText());
-			Settings.getInstance().setSynchronizeKeys(synchronizeKeys.getSelection());
 			
 			Settings.getInstance().setLogonboxDomain(logonboxDomain.getText());
 			Settings.getInstance().setLogonboxUsername(logonboxUsername.getText());
@@ -169,6 +168,7 @@ public class SettingsDialog extends Dialog {
 			Settings.getInstance().setSshteamDomain(hostname.getText());
 			Settings.getInstance().setSshteamUsername(username.getText());
 			Settings.getInstance().setSshteamPort(Integer.parseInt(port.getText()));
+			Settings.getInstance().setSynchronizeKeys(synchronizeKeys.getSelection());
 			
 			Settings.getInstance().setStrictSSL(!strictSSL.getSelection());
 			Settings.getInstance().save();
