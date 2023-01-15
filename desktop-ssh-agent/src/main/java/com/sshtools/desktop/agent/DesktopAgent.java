@@ -290,6 +290,7 @@ public class DesktopAgent extends AbstractAgentProcess {
 			
 			try {
 				passphrase = keyring.getPassword(getServiceName(keyfile), getAccountName());
+				return passphrase;
 			} catch (PasswordAccessException e) {
 				Log.error("Key ring error", e);
 			}
