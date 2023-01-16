@@ -412,7 +412,7 @@ public class DesktopAgent extends AbstractAgentProcess {
 	}
 
 	private void runSWT() {
-		try {
+//		try {
 			while (!shell.isDisposed()) {
 				try {
 					if (!display.readAndDispatch())
@@ -426,9 +426,9 @@ public class DesktopAgent extends AbstractAgentProcess {
 				}
 			}
 			
-		} finally {
-			quit(false);
-		}
+//		} finally {
+//			quit(false);
+//		}
 	}
 
 	private void showFatalError(String message) {
@@ -668,7 +668,8 @@ public class DesktopAgent extends AbstractAgentProcess {
 				public void handleEvent(Event event) {
 					SWTUtil.safeAsyncExec(new Runnable() {
 						public void run() {
-							quit(true);
+							System.exit(0);
+//							quit(true);
 						}
 					});
 				}
@@ -961,50 +962,41 @@ public class DesktopAgent extends AbstractAgentProcess {
 			Log.info("Quitting ({})", killSWT);
 		}
 		
-		Thread t = new Thread("Close-Agent-Thread") {
-			public void run() {
+//		Thread t = new Thread("Close-Agent-Thread") {
+//			public void run() {
 				try {
 					server.close();
 				} catch (IOException e) {
 				}				
-			}
-		};
-		t.setDaemon(true);
-		t.start();
+//			}
+//		};
+//		t.setDaemon(true);
+//		t.start();
 
-		Thread t2 = new Thread("Close-Pagent-Thread") {
-			public void run() {
-				if(pageantProcess!=null) {
+		if(pageantProcess!=null) {
+			if(Log.isInfoEnabled()) {
+				Log.info("Closing pageant process");
+			}
+			pageantProcess.destroy();
+			try {
+				pageantProcess.waitFor(5, TimeUnit.SECONDS);
+			} catch (InterruptedException e) {
+			}
+			if(pageantProcess.isAlive()) {
+				try {
 					
 					if(Log.isInfoEnabled()) {
-						Log.info("Closing pageant process");
+						Log.info("Killing pageant process");
 					}
-					pageantProcess.destroy();
-					try {
-						pageantProcess.waitFor(5, TimeUnit.SECONDS);
-					} catch (InterruptedException e) {
-					}
-					if(pageantProcess.isAlive()) {
-						try {
-							
-							if(Log.isInfoEnabled()) {
-								Log.info("Killing pageant process");
-							}
-							pageantProcess.destroyForcibly().waitFor(5, TimeUnit.SECONDS);
-							
-							if(pageantProcess.isAlive()) {
-								Log.warn("pageant-proxy.exe may still be running.");
-							}
-						} catch (InterruptedException e) {
-						}
-					}
+					pageantProcess.destroyForcibly().waitFor(5, TimeUnit.SECONDS);
 					
+					if(pageantProcess.isAlive()) {
+						Log.warn("pageant-proxy.exe may still be running.");
+					}
+				} catch (InterruptedException e) {
 				}
 			}
-		};
-		
-		t2.setDaemon(true);
-		t2.start();
+		}
 		
 		if(monitor!=null) {
 			

@@ -181,9 +181,27 @@
 			<version>2.12.6.1</version>
 		</dependency>
 		<dependency>
+		    <groupId>de.swiesend</groupId>
+		    <artifactId>secret-service</artifactId>
+		    <version>1.8.0-jdk17</version>
+		    <exclusions>
+		    	<exclusion>
+		    		<groupId>com.github.hypfvieh</groupId>
+		    		<artifactId>
+		    			dbus-java-transport-jnr-unixsocket
+		    		</artifactId>
+		    	</exclusion>
+		    </exclusions>
+		</dependency>
+		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>terminal-swt</artifactId>
 			<version>3.0.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.github.hypfvieh</groupId>
+			<artifactId>dbus-java-transport-native-unixsocket</artifactId>
+			<version>4.2.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -199,7 +217,13 @@
 		<dependency>
 			<groupId>com.github.javakeyring</groupId>
 			<artifactId>java-keyring</artifactId>
-			<version>1.0.1</version>
+			<version>1.0.2-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+					<groupId>de.swiesend</groupId>
+					<artifactId>secret-service</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>pt.davidafsilva.apple</groupId>
@@ -214,6 +238,14 @@
 			<snapshots />
 			<releases>
 				<enabled>false</enabled>
+			</releases>
+		</repository>
+		<repository>
+			<id>ext-snapshots-local</id>
+        	<url>http://artifactory.jadaptive.com/ext-snapshots-local</url>
+        	<snapshots/>
+        	<releases>
+				<enabled>false</enabled>				
 			</releases>
 		</repository>
 		<repository>
@@ -258,4 +290,5 @@
 			</resource>
 		</resources>
 	</build>
+	
 </project>
