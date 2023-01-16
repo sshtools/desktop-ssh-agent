@@ -27,6 +27,8 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.hypersocket.json.utils.HypersocketUtils;
 import com.sshtools.common.ssh.components.SshPublicKey;
 
@@ -117,17 +119,17 @@ public class Settings {
 	
 	public void save() throws FileNotFoundException, IOException {
 		Properties properties = new Properties();
-		properties.put("terminalCommand", terminalCommand);
-		properties.put("terminalArguments", terminalArguments);
+		properties.put("terminalCommand",  StringUtils.defaultString(terminalCommand));
+		properties.put("terminalArguments",  StringUtils.defaultString(terminalArguments));
 		properties.put("favorites", HypersocketUtils.csv(favoriteIds.toArray()));
 		properties.put("useBuiltInTerminal", String.valueOf(useBuiltInTerminal));
 
-		properties.put("logonboxDomain", logonboxDomain);
-		properties.put("logonboxUsername", logonboxUsername);
+		properties.put("logonboxDomain", StringUtils.defaultString(logonboxDomain));
+		properties.put("logonboxUsername",  StringUtils.defaultString(logonboxUsername));
 		properties.put("logonboxPort", String.valueOf(logonboxPort));
 		
-		properties.put("sshteamDomain", sshteamDomain);
-		properties.put("sshteamUsername", sshteamUsername);
+		properties.put("sshteamDomain",  StringUtils.defaultString(sshteamDomain));
+		properties.put("sshteamUsername",  StringUtils.defaultString(sshteamUsername));
 		properties.put("sshteamPort", String.valueOf(sshteamPort));
 		
 		properties.put("synchronizeKeys", String.valueOf(synchronizeKeys));

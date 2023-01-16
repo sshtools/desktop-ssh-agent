@@ -1677,12 +1677,15 @@ public class DesktopAgent extends AbstractAgentProcess {
 								            		SshKeyPair pair = null;
 								            		if(file.isPassphraseProtected()) {
 								            			for(int i=0;i<3;i++) {
-								            				InputForm form = new InputForm(display,  "Passphrase Required",
+								            				PassphraseForm form = new PassphraseForm(display,  "Passphrase Required",
 								            						String.format("Please enter your passphrase for key file %s", keyfile.getName()), 
 								            						"", true);
 								            				if(form.show()) {
 								            					try {
 																pair = file.toKeyPair(form.getInput());
+																if(form.isSaveToKeyChain()) {
+																	storePassphrase(keyfile, form.getInput());
+																}
 															} catch (InvalidPassphraseException e) {
 																SWTUtil.showError("Add Key", "Invalid passphrase!");
 																continue;
@@ -2033,7 +2036,7 @@ public class DesktopAgent extends AbstractAgentProcess {
 								if(Settings.getInstance().isSynchronizeKeys() && kc.isTeamKey()) {
 									SshPublicKey authorizationKey = getAuthorizationKey();
 									if(Objects.isNull(authorizationKey)) {
-										SWTUtil.showInformation("SSH Team Sync", "Synchronization is enabled but no suitable private keys were found for authenticating with your ssh.team domain.");
+										SWTUtil.showInformation("SSH Team Synchronization", "Synchronization is enabled but no suitable private keys were found for authenticating with your ssh.team domain.");
 									} else {
 										try {
 											SshTeamHelper.removeKey(Settings.getInstance().getSshteamUsername(), 
