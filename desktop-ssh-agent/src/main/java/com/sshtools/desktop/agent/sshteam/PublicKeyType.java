@@ -18,28 +18,31 @@
  */
 package com.sshtools.desktop.agent.sshteam;
 
+import com.sshtools.common.ssh.components.SshPublicKey;
 import com.sshtools.synergy.ssh.SshContext;
 
 public enum PublicKeyType {
 
-	ED25519("ssh-ed25519", 256),
-	ED448("ssh-ed448", 448),
-	RSAwith2048bits("ssh-rsa", 2048),
-	RSAwith3192bits("ssh-rsa", 3192),
-	RSAwith4096bits("ssh-rsa", 4096),
-	ECDSAwith256bits("ecdsa", 256, SshContext.PUBLIC_KEY_ECDSA_SHA2_NISPTP_256),
-	ECDSAwith384bits("ecdsa", 384, SshContext.PUBLIC_KEY_ECDSA_SHA2_NISPTP_384),
-	ECDSAwith521bits("ecdsa", 512, SshContext.PUBLIC_KEY_ECDSA_SHA2_NISPTP_521);
+	ED25519("ed25519", "ssh-ed25519", 256),
+	ED448("ed448", "ssh-ed448", 448),
+	RSAwith2048bits("rsa2048", "ssh-rsa", 2048),
+	RSAwith3192bits("rsa3192", "ssh-rsa", 3192),
+	RSAwith4096bits("rsa4096", "ssh-rsa", 4096),
+	ECDSAwith256bits("ecdsa256", "ecdsa", 256, SshContext.PUBLIC_KEY_ECDSA_SHA2_NISPTP_256),
+	ECDSAwith384bits("ecdsa384", "ecdsa", 384, SshContext.PUBLIC_KEY_ECDSA_SHA2_NISPTP_384),
+	ECDSAwith521bits("ecdsa521", "ecdsa", 512, SshContext.PUBLIC_KEY_ECDSA_SHA2_NISPTP_521);
 	
+	String name;
 	String type;
 	String algorithm;
 	int bits;
 	
-	PublicKeyType(String type, int bits) {
-		this(type, bits, type);
+	PublicKeyType(String name, String type, int bits) {
+		this(name, type, bits, type);
 	}
 	
-	PublicKeyType(String type, int bits, String algorithm) {
+	PublicKeyType(String name, String type, int bits, String algorithm) {
+		this.name = name;
 		this.type = type;
 		this.bits = bits;
 		this.algorithm = algorithm;
@@ -60,6 +63,17 @@ public enum PublicKeyType {
 
 	public String getAlgorithm() {
 		return algorithm;
+	}
+
+	public boolean isType(SshPublicKey key) {
+		return key.getAlgorithm().equals(algorithm)
+				&& (!algorithm.equals("ssh-rsa")
+						|| (algorithm.equals("ssh-rsa") 
+								&& key.getBitLength() >= (bits-1) && key.getBitLength() <= (bits+1)));
+	}
+
+	public String getFriendlyName() {
+		return name;
 	}
 }
 

@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hypersocket.json.JsonRequestStatus;
-import com.sshtools.agent.KeyConstraints;
 import com.sshtools.agent.KeyStore;
 import com.sshtools.agent.exceptions.KeyTimeoutException;
 import com.sshtools.common.logger.Log;
@@ -47,6 +46,7 @@ import com.sshtools.common.publickey.SshKeyUtils;
 import com.sshtools.common.ssh.SshException;
 import com.sshtools.common.ssh.components.SshPublicKey;
 import com.sshtools.common.util.ByteArrayWriter;
+import com.sshtools.desktop.agent.ExtendedKeyInfo;
 import com.sshtools.synergy.ssh.SshContext;
 
 public class SshTeamHelper {
@@ -184,16 +184,18 @@ public class SshTeamHelper {
 		List<SshPublicKey> results = new ArrayList<>();
 		
 		for(SshPublicKey key : keystore.getPublicKeys().keySet()) {
-			KeyConstraints c = keystore.getKeyConstraints(key);
+			ExtendedKeyInfo c = (ExtendedKeyInfo) keystore.getKeyConstraints(key);
+			c.setName(keystore.getPublicKeys().get(key));
 			try {
 				getPolicy(username, hostname, port, key, keystore);
 				Log.info("Found existing key {} on ssh.team domain", SshKeyUtils.getFingerprint(key));
 				results.add(key);
 				
-				c.setSSH1Compatible(true);
+				c.setTeamKey(true);
+				
 			} catch(Throwable e) {
 				Log.info("Key {} is not present on ssh.team domain", SshKeyUtils.getFingerprint(key));
-				c.setSSH1Compatible(false);
+				c.setTeamKey(false);
 			}
 		}
 		

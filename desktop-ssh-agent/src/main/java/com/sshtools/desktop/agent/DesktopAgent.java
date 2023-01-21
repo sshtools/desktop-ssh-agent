@@ -19,12 +19,14 @@
 package com.sshtools.desktop.agent;
 
 import java.awt.Desktop;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.StringReader;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -37,9 +39,12 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -56,6 +61,8 @@ import org.apache.commons.io.monitor.FileAlterationMonitor;
 import org.apache.commons.io.monitor.FileAlterationObserver;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
@@ -81,7 +88,6 @@ import com.github.javakeyring.BackendNotSupportedException;
 import com.github.javakeyring.Keyring;
 import com.github.javakeyring.PasswordAccessException;
 import com.sshtools.agent.InMemoryKeyStore;
-import com.sshtools.agent.KeyConstraints;
 import com.sshtools.agent.KeyStore;
 import com.sshtools.agent.exceptions.KeyTimeoutException;
 import com.sshtools.agent.openssh.OpenSSHConnectionFactory;
@@ -91,6 +97,7 @@ import com.sshtools.agent.server.SshAgentServer;
 import com.sshtools.common.knownhosts.KnownHostsKeyVerification;
 import com.sshtools.common.logger.Log;
 import com.sshtools.common.publickey.InvalidPassphraseException;
+import com.sshtools.common.publickey.SshKeyPairGenerator;
 import com.sshtools.common.publickey.SshKeyUtils;
 import com.sshtools.common.publickey.SshPrivateKeyFile;
 import com.sshtools.common.publickey.SshPrivateKeyFileFactory;
@@ -100,7 +107,9 @@ import com.sshtools.common.ssh.components.SshPrivateKey;
 import com.sshtools.common.ssh.components.SshPublicKey;
 import com.sshtools.common.ssh.components.jce.JCEProvider;
 import com.sshtools.desktop.agent.Settings.IconMode;
+import com.sshtools.desktop.agent.sshteam.PublicKeyType;
 import com.sshtools.desktop.agent.sshteam.SshTeamHelper;
+import com.sshtools.desktop.agent.sshteam.SshTeamPolicy;
 import com.sshtools.desktop.agent.swt.ConnectionDialog;
 import com.sshtools.desktop.agent.swt.CustomDialog;
 import com.sshtools.desktop.agent.swt.InputForm;
@@ -112,6 +121,7 @@ import com.sshtools.desktop.agent.term.ShellTerminalConnector;
 import com.sshtools.desktop.agent.term.TerminalDisplay;
 import com.sshtools.twoslices.Toast;
 import com.sshtools.twoslices.ToastType;
+import com.sshtools.twoslices.Toaster;
 import com.sshtools.twoslices.ToasterFactory;
 import com.sshtools.twoslices.ToasterSettings;
 
@@ -196,7 +206,8 @@ public class DesktopAgent extends AbstractAgentProcess {
 			setupSystemTray();
 			setupKeychain();
 			
-			loadKeys();
+			loadKeys(Collections.emptyList());
+			checkSynchronization();
 			loadKnownHostsFromFile();
 			
 			timer = new Timer("Network Check", true);
@@ -218,8 +229,9 @@ public class DesktopAgent extends AbstractAgentProcess {
 								if(Log.isInfoEnabled()) {
 									Log.info("The agent is back online");
 								}
-								Toast.toast(ToastType.INFO, "Desktop SSH Agent", String.format("The agent has connected to %s", Settings.getInstance().getLogonboxDomain()));
+								Toast.toast(ToastType.INFO, "Desktop SSH Agent", String.format("The agent has connected to %s", Settings.getInstance().getLogonboxDomain()));	
 								firstRun = true;
+								Log.info("REMOVE ME ");
 							} else if(!online.get() && (firstRun || !wasOffline)) {
 								if(Log.isInfoEnabled()) {
 									Log.info("The agent is offline");
@@ -335,10 +347,11 @@ public class DesktopAgent extends AbstractAgentProcess {
 		return String.format("DesktopSSHAgent/%s", keyfile.getName());
 	}
 
-	private void loadKeys() {
+	private void loadKeys(Collection<SshPublicKey> remoteKeys) {
 		
 		loadDeviceKeys(false);
-
+		localKeys.deleteAllKeys();
+		
 		for(File keyfile : Settings.getInstance().getKeyFiles()) {
 			if(!keyfile.exists() || keyfile.isDirectory()) {
 				continue;
@@ -370,7 +383,10 @@ public class DesktopAgent extends AbstractAgentProcess {
             		if(pair==null) {
             			SWTUtil.showError("Load Key", String.format("The key %s could not be read.", keyfile.getName()));
             		} else {
-            			localKeys.addKey(pair, keyfile.getName(), new ExtendedKeyInfo(keyfile));
+            			ExtendedKeyInfo info = new ExtendedKeyInfo(keyfile, keyfile.getName());
+            			info.setTeamKey(remoteKeys.contains(pair.getPublicKey()));
+            			
+            			localKeys.addKey(pair, keyfile.getName(), info);
             		}
     		
             	} catch(IOException ex) {
@@ -380,36 +396,8 @@ public class DesktopAgent extends AbstractAgentProcess {
 		
 		Log.info("Got {} private keys", localKeys.size());
 		
-		if(Settings.getInstance().isSynchronizeKeys()) {
-			SshTeamHelper.verifyAccess(Settings.getInstance().getSshteamUsername(),
-					Settings.getInstance().getSshteamDomain(),
-					Settings.getInstance().getSshteamPort(),
-					localKeys);
-		}
 	}
-	
-	
-	class ExtendedKeyInfo extends KeyConstraints {
-		File file;
-		boolean teamKey = false;
-		
-		ExtendedKeyInfo(File file) {
-			super();
-			this.file = file;
-		}
-		
-		public File getFile() {
-			return file;
-		}
 
-		public boolean isTeamKey() {
-			return teamKey;
-		}
-
-		public void setTeamKey(boolean teamKey) {
-			this.teamKey = teamKey;
-		}
-	}
 
 	private void runSWT() {
 //		try {
@@ -1612,8 +1600,25 @@ public class DesktopAgent extends AbstractAgentProcess {
 				 */
 				new Label(keyShell, SWT.NONE);
 				new Label(keyShell, SWT.NONE);
-				new Label(keyShell, SWT.NONE);
 				
+				Button reloadButton = new Button(keyShell, SWT.PUSH);
+				reloadButton.setText("Reload");
+				data = new GridData(SWT.FILL, SWT.END, true, true);
+				reloadButton.setLayoutData(data);
+				reloadButton.setEnabled(true);
+				reloadButton.addSelectionListener(new SelectionAdapter()
+		        {
+		            public void widgetSelected(SelectionEvent event)
+		            {
+		            	runTask(()->{	
+		            		loadKeys(Collections.emptyList());
+		            		checkSynchronization();
+		            	});
+		                
+		            }
+		        });
+				
+
 				Button deleteButton = new Button(keyShell, SWT.PUSH);
 				deleteButton.setText("Delete Key");
 				data = new GridData(SWT.FILL, SWT.END, true, true);
@@ -1696,7 +1701,7 @@ public class DesktopAgent extends AbstractAgentProcess {
 								            		if(pair==null) {
 								            			SWTUtil.showError("Add Key", "The key file could not be read.");
 								            		} else {
-										        		ImportKey importKey = new ImportKey(keyfile, pair.getPrivateKey(), pair.getPublicKey(), keyfile.getName(), new ExtendedKeyInfo(keyfile));
+										        		ImportKey importKey = new ImportKey(keyfile, pair.getPrivateKey(), pair.getPublicKey(), keyfile.getName(), new ExtendedKeyInfo(keyfile, keyfile.getName()));
 										        		display.syncExec(importKey);
 								            		}
 								        		
@@ -1960,10 +1965,8 @@ public class DesktopAgent extends AbstractAgentProcess {
 									pubkey);
 							
 							cs.setTeamKey(true);
-							
-							Toast.toast(ToastType.INFO, "Desktop SSH Agent", 
-									String.format("The key %s was uploaded to %s", keyfile.getName(),
-											Settings.getInstance().getSshteamDomain()));
+							cs.setName(keyfile.getName());
+
 							
 						} catch (NoSuchAlgorithmException | InterruptedException | URISyntaxException | SshException
 								| KeyTimeoutException e) {
@@ -1987,6 +1990,10 @@ public class DesktopAgent extends AbstractAgentProcess {
 		boolean isSuccess() {
 			return ret;
 		}
+	}
+	
+	protected void runTask(Runnable r) {
+		new Thread(r).start();
 	}
 	
 	class DeleteKey implements Runnable {
@@ -2015,64 +2022,66 @@ public class DesktopAgent extends AbstractAgentProcess {
 
 			if (result == DELETE) {
 				
-					try {
-						synchronized(deviceKeys) {
-							if(deviceKeys.containsKey(key)) {
-								
-								SWTUtil.showError("Delete Key", "You cannot delete keys from your authenticator device!");
-																
-							} else {
-								
-								String name = localKeys.getPublicKeys().get(key);
-								ExtendedKeyInfo kc = (ExtendedKeyInfo) localKeys.getKeyConstraints(key);
-								if(Settings.getInstance().isSynchronizeKeys() && kc.isTeamKey()) {
-									SshPublicKey authorizationKey = getAuthorizationKey();
-									if(Objects.isNull(authorizationKey)) {
-										SWTUtil.showInformation("SSH Team Synchronization", "Synchronization is enabled but no suitable private keys were found for authenticating with your ssh.team domain.");
-									} else {
-										try {
-											SshTeamHelper.removeKey(Settings.getInstance().getSshteamUsername(), 
-													Settings.getInstance().getSshteamDomain(),
-													Settings.getInstance().getSshteamPort(),
-													authorizationKey,
-													localKeys,
-													name,
-													key);
-											
-											Toast.toast(ToastType.INFO, "Desktop SSH Agent", 
-													String.format("The key %s was removed to %s", name,
-															Settings.getInstance().getSshteamDomain()));
-											
-										} catch (NoSuchAlgorithmException | InterruptedException | URISyntaxException | SshException
-												| KeyTimeoutException e) {
-											Log.error("Failed to synchronize", e);
-											SWTUtil.showError("SSH Team Synchronization", "The key could not be synchronized with your ssh.team account. Check logs for more information.");
-										}
-									}
-								}
-								
-								ExtendedKeyInfo info = (ExtendedKeyInfo) localKeys.getKeyConstraints(key);
-								Settings.getInstance().removePrivateKey(info.getFile());
-
-								localKeys.deleteKey(key);
-
-								displayKeys();
-							}
-								
-							ret = true;
-						}
-						
-					} catch (IOException e) {
-						SWTUtil.showError("Delete Key", e.getMessage());
-					}  catch(IllegalStateException  e) {
-						// Ignore
-					}
-					
-				}
+				runTask(()->{
+					doDelete(key);
+				});
+				
+				ret = true;
+			}
 		}
 
 		boolean isSuccess() {
 			return ret;
+		}
+	}
+	
+	private void doDelete(SshPublicKey key) {
+		try {
+			synchronized(deviceKeys) {
+				if(deviceKeys.containsKey(key)) {
+					
+					SWTUtil.showError("Delete Key", "You cannot delete keys from your authenticator device!");
+													
+				} else {
+					
+					String name = localKeys.getPublicKeys().get(key);
+					ExtendedKeyInfo kc = (ExtendedKeyInfo) localKeys.getKeyConstraints(key);
+					if(Settings.getInstance().isSynchronizeKeys() && kc.isTeamKey()) {
+						SshPublicKey authorizationKey = getAuthorizationKey();
+						if(Objects.isNull(authorizationKey)) {
+							SWTUtil.showInformation("SSH Team Synchronization", "Synchronization is enabled but no suitable private keys were found for authenticating with your ssh.team domain.");
+						} else {
+							try {
+								SshTeamHelper.removeKey(Settings.getInstance().getSshteamUsername(), 
+										Settings.getInstance().getSshteamDomain(),
+										Settings.getInstance().getSshteamPort(),
+										authorizationKey,
+										localKeys,
+										name,
+										key);
+								
+								
+							} catch (NoSuchAlgorithmException | InterruptedException | URISyntaxException | SshException
+									| KeyTimeoutException e) {
+								Log.error("Failed to synchronize", e);
+								SWTUtil.showError("SSH Team Synchronization", "The key could not be synchronized with your ssh.team account. Check logs for more information.");
+							}
+						}
+					}
+					
+					ExtendedKeyInfo info = (ExtendedKeyInfo) localKeys.getKeyConstraints(key);
+					Settings.getInstance().removePrivateKey(info.getFile());
+
+					localKeys.deleteKey(key);
+
+					displayKeys();
+				}
+			}
+			
+		} catch (IOException e) {
+			SWTUtil.showError("Delete Key", e.getMessage());
+		}  catch(IllegalStateException  e) {
+			// Ignore
 		}
 	}
 
@@ -2234,5 +2243,162 @@ public class DesktopAgent extends AbstractAgentProcess {
 		}
 		return null;
 	}
+
+	public void checkRotationPolicy() {
+		
+		try {
+			SshTeamPolicy policy = SshTeamHelper.getPolicy(Settings.getInstance().getSshteamUsername(), 
+					Settings.getInstance().getSshteamDomain(),
+					Settings.getInstance().getSshteamPort(), 
+					getAuthorizationKey(),
+					getLocalKeyStore());
+			
+			if(policy.isEnforcePolicy()) {
+				
+				try(BufferedReader reader = new BufferedReader(new StringReader(SshTeamHelper.getAuthorizedKeys(Settings.getInstance().getSshteamUsername(), 
+					Settings.getInstance().getSshteamDomain(),
+					Settings.getInstance().getSshteamPort(), 
+					getAuthorizationKey(),
+					getLocalKeyStore())))) {
+				
+					String line;
+					List<SshPublicKey> rotateKeys = new ArrayList<>();
+					List<SshPublicKey> remoteKeys = new ArrayList<>();
+					while((line = reader.readLine())!=null) {
+						SshPublicKey key = SshKeyUtils.getPublicKey(line);
+						remoteKeys.add(key);
+						String comment = SshKeyUtils.getPublicKeyComment(line);
+						String[] elements = comment.split(";");
+						if(elements.length > 0) {
+							if(NumberUtils.isCreatable(elements[elements.length - 1])) {
+								Date expires = new Date(Long.parseLong(elements[elements.length - 1]));
+								Date warn = DateUtils.addDays(expires, -7);
+								if(new Date().after(warn)) {
+									rotateKeys.add(key);
+								}
+							}
+						}	
+					}
+					
+					List<PublicKeyType> missingKeys = new ArrayList<>();
+					for(PublicKeyType type : policy.getRequiredTypes()) {
+						if(containsType(type, remoteKeys)) {
+							continue;
+						}
+						missingKeys.add(type);
+					}
+					
+					if(missingKeys.size() > 0) {
+						SWTUtil.showQuestion("Key Policy", "You need to add one or more keys to conform with the company key policy.\n\nDo you want I generate these now?", ()->{
+							for(PublicKeyType type : missingKeys) {
+								generateKey(type);
+							}
+						});
+					}
+					
+					if(rotateKeys.size() > 0) {
+						SWTUtil.showQuestion("Key Policy", "You have one or more keys that are expiring. Shall I re-generate these now?", ()->{
+							for(SshPublicKey key : rotateKeys) {
+								rotateKey(key);
+							}
+						});
+					}
+					
+					loadKeys(remoteKeys);
+				}
+			}
+			
+			
+		} catch (NoSuchAlgorithmException | IOException | InterruptedException | URISyntaxException | SshException
+				| KeyTimeoutException e) {
+			Log.error("Could not get key rotation policy", e);
+		}
+		
+		
+	}
+
+	private void rotateKey(SshPublicKey key) {
+		
+		ExtendedKeyInfo info = (ExtendedKeyInfo) localKeys.getKeyConstraints(key);
+		
+		try {
+			SshKeyPair pair = SshKeyPairGenerator.generateKeyPair(key.getAlgorithm(), key.getBitLength());
+		
+			File file = info.getFile();
+			
+			SshTeamHelper.addKey(Settings.getInstance().getSshteamUsername(), 
+					Settings.getInstance().getSshteamDomain(),
+					Settings.getInstance().getSshteamPort(),
+					getAuthorizationKey(),
+					localKeys,
+					String.valueOf(System.currentTimeMillis()),
+					pair.getPublicKey());
+			
+			String passphrase = getPassphrase(file);
+			SshKeyUtils.savePrivateKey(pair, passphrase, "", file);
+			
+			SshTeamHelper.removeKey(Settings.getInstance().getSshteamUsername(), 
+					Settings.getInstance().getSshteamDomain(),
+					Settings.getInstance().getSshteamPort(),
+					getAuthorizationKey(),
+					localKeys,
+					info.getName(),
+					key);
+			
+		} catch (IOException | SshException | NoSuchAlgorithmException | InterruptedException | URISyntaxException | KeyTimeoutException e) {
+			SWTUtil.showError("Generate Key", "An error occurred whilst trying to rotate a key\n\n" + e.getMessage());
+		}
+	}
+
+	private void generateKey(PublicKeyType type) {
+		
+		try {
+			SshKeyPair pair = SshKeyPairGenerator.generateKeyPair(type.getGroupType(), type.getBits());
+			File file = new File(new File(System.getProperty("user.home"), ".ssh"), "id_" + type.getFriendlyName());
+			String passphrase = getPassphrase(file);
+			SshKeyUtils.savePrivateKey(pair, passphrase, "", file);
+			
+			SshTeamHelper.addKey(Settings.getInstance().getSshteamUsername(), 
+					Settings.getInstance().getSshteamDomain(),
+					Settings.getInstance().getSshteamPort(),
+					getAuthorizationKey(),
+					localKeys,
+					String.valueOf(System.currentTimeMillis()),
+					pair.getPublicKey());
+			
+			Settings.getInstance().addPrivateKey(pair.getPublicKey(), file);
+			
+		} catch (IOException | SshException | NoSuchAlgorithmException | InterruptedException | URISyntaxException | KeyTimeoutException e) {
+			SWTUtil.showError("Generate Key", "An error occurred whilst trying to generate a key\n\n" + e.getMessage());
+		}
+	}
+	private boolean containsType(PublicKeyType type, List<SshPublicKey> keys) {
+		
+		for(SshPublicKey key : keys) {
+			if(type.isType(key)) {
+				return true;
+			}
+		}
+		return false;
+		
+	}
+
+	public void checkSynchronization() {
+		
+		if(Settings.getInstance().isSynchronizeKeys()) {
+			Collection<SshPublicKey> results = SshTeamHelper.verifyAccess(Settings.getInstance().getSshteamUsername(), 
+					Settings.getInstance().getSshteamDomain(),
+					Settings.getInstance().getSshteamPort(), getLocalKeyStore());
+			
+			if(results.isEmpty()) {
+				SWTUtil.showInformation("Desktop Agent", 
+						"To start synchronization you must upload one of the public keys from this agent to your ssh.team account");
+			} else {
+				checkRotationPolicy();
+			}
+		}
+	}
+	
+	
 
 }

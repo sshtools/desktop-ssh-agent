@@ -51,6 +51,7 @@ import com.sshtools.desktop.agent.DesktopAgent;
 import com.sshtools.desktop.agent.Settings;
 import com.sshtools.desktop.agent.Settings.IconMode;
 import com.sshtools.desktop.agent.sshteam.SshTeamHelper;
+import com.sshtools.desktop.agent.sshteam.SshTeamPolicy;
 
 public class SettingsDialog extends Dialog {
 
@@ -176,16 +177,7 @@ public class SettingsDialog extends Dialog {
 
 			agent.resetIcon();
 			
-			if(Settings.getInstance().isSynchronizeKeys()) {
-				Collection<SshPublicKey> results = SshTeamHelper.verifyAccess(Settings.getInstance().getSshteamUsername(), 
-						Settings.getInstance().getSshteamDomain(),
-						Settings.getInstance().getSshteamPort(), agent.getLocalKeyStore());
-				
-				if(results.isEmpty()) {
-					SWTUtil.showInformation("Desktop Agent", 
-							"To start synchronization you must upload one of the public keys from this agent to your ssh.team account");
-				}
-			}
+			agent.checkSynchronization();
 		} catch (Throwable e) {
 			SWTUtil.showError("Preferences", 
 					String.format("Could not save preferences!\r\n%s",e.getMessage()));
