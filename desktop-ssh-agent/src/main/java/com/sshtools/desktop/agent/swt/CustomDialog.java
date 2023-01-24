@@ -67,7 +67,37 @@ public class CustomDialog extends Dialog
     public String open()
     {
         shell.setText(getText());
-        createContents(shell);
+        
+        int column = Math.max(buttons.length, 3);
+        
+        createContents(shell, column);
+       
+        while(column > buttons.length) {
+        	new Label(shell, SWT.NONE);
+        	column--;
+        }
+        
+        for(int i = buttons.length-1;i>=0;i--) {
+	        Button b = new Button(shell, SWT.PUSH);
+	        b.setText(buttons[i]);
+	        GridData  data = new GridData(SWT.FILL, SWT.END, true, true);
+	        
+	        b.setLayoutData(data);
+	        final int index = i;
+	        b.addSelectionListener(new SelectionAdapter()
+	        {
+	            public void widgetSelected(SelectionEvent event)
+	            {
+	                selected = buttons[index];
+	                shell.dispose();
+	            }
+	        });
+	        if(i==0) {
+	        		shell.setDefaultButton(b);
+	        }
+        }
+        
+        
         shell.pack();
         
         Point size = shell.computeSize(-1, -1);
@@ -95,14 +125,13 @@ public class CustomDialog extends Dialog
      * @param shell
      *            the dialog window
      */
-    protected void createContents(final Shell shell)
+    protected void createContents(final Shell shell, int column)
     {
-    	int column = Math.max(buttons.length, 3);
- 
+    	
         shell.setLayout(new GridLayout(column, true));
 
         // Show the message
-        CLabel label = new CLabel(shell, SWT.WRAP | SWT.MULTI);
+        CLabel label = new CLabel(shell, SWT.WRAP | SWT.MULTI | SWT.TOP);
         String[] messages = splitMessage(StringUtils.defaultString(message));
         StringBuilder builder = new StringBuilder();
         for(String m : messages) {
@@ -114,35 +143,13 @@ public class CustomDialog extends Dialog
         }
         label.setText(builder.toString());
         label.setImage(shell.getDisplay().getSystemImage(icon));
+        
         GridData data = new GridData(GridData.FILL_HORIZONTAL);
         data.horizontalSpan = column;
         data.widthHint = 500;
         label.setLayoutData(data);
 
-        while(column > buttons.length) {
-        	new Label(shell, SWT.NONE);
-        	column--;
-        }
-        
-        for(int i = buttons.length-1;i>=0;i--) {
-	        Button b = new Button(shell, SWT.PUSH);
-	        b.setText(buttons[i]);
-	        data = new GridData(SWT.FILL, SWT.END, true, true);
-	        
-	        b.setLayoutData(data);
-	        final int index = i;
-	        b.addSelectionListener(new SelectionAdapter()
-	        {
-	            public void widgetSelected(SelectionEvent event)
-	            {
-	                selected = buttons[index];
-	                shell.dispose();
-	            }
-	        });
-	        if(i==0) {
-	        		shell.setDefaultButton(b);
-	        }
-        }
+    
     }
 
     private String[] splitMessage(String message) {
@@ -176,4 +183,8 @@ public class CustomDialog extends Dialog
         
         dialog.open();
     }
+
+	public String getSelected() {
+		return selected;
+	}
 }

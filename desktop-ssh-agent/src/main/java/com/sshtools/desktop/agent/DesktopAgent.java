@@ -68,14 +68,17 @@ import org.eclipse.swt.events.DisposeEvent;
 import org.eclipse.swt.events.DisposeListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
@@ -121,9 +124,10 @@ import com.sshtools.desktop.agent.term.ShellTerminalConnector;
 import com.sshtools.desktop.agent.term.TerminalDisplay;
 import com.sshtools.twoslices.Toast;
 import com.sshtools.twoslices.ToastType;
-import com.sshtools.twoslices.Toaster;
 import com.sshtools.twoslices.ToasterFactory;
 import com.sshtools.twoslices.ToasterSettings;
+import com.sshtools.twoslices.ToasterSettings.SystemTrayIconMode;
+import com.sshtools.twoslices.impl.SWTToaster;
 
 import pt.davidafsilva.apple.OSXKeychain;
 import pt.davidafsilva.apple.OSXKeychainException;
@@ -203,6 +207,7 @@ public class DesktopAgent extends AbstractAgentProcess {
 				}
 			});
 
+	
 			setupSystemTray();
 			setupKeychain();
 			
@@ -229,14 +234,14 @@ public class DesktopAgent extends AbstractAgentProcess {
 								if(Log.isInfoEnabled()) {
 									Log.info("The agent is back online");
 								}
-								Toast.toast(ToastType.INFO, "Desktop SSH Agent", String.format("The agent has connected to %s", Settings.getInstance().getLogonboxDomain()));	
+								showNotification(ToastType.INFO, "Desktop SSH Agent", String.format("The agent has connected to %s", Settings.getInstance().getLogonboxDomain()));	
 								firstRun = true;
 								Log.info("REMOVE ME ");
 							} else if(!online.get() && (firstRun || !wasOffline)) {
 								if(Log.isInfoEnabled()) {
 									Log.info("The agent is offline");
 								}
-								Toast.toast(ToastType.WARNING, "Desktop SSH Agent", String.format("The agent %s connected to %s", 
+								showNotification(ToastType.WARNING, "Desktop SSH Agent", String.format("The agent %s connected to %s", 
 										firstRun ? "could not be " : "is no longer", Settings.getInstance().getLogonboxDomain()));
 							}
 							
@@ -261,6 +266,15 @@ public class DesktopAgent extends AbstractAgentProcess {
 			Log.error("Failed to startup MobileAgent", t);
 			showFatalError(t.getMessage());
 		}
+	}
+	
+	private void showNotification(ToastType type, String title, String text) {
+		
+		Toast.builder()
+			.type(type)
+			.title(title)
+			.icon(getClass().getResource("/new_icon_white.png"))
+			.content(text).toast();
 	}
 
 	private void setupKeychain() {
@@ -1953,7 +1967,7 @@ public class DesktopAgent extends AbstractAgentProcess {
 					
 					SshPublicKey authorizationKey = getAuthorizationKey();
 					if(Objects.isNull(authorizationKey)) {
-						SWTUtil.showInformation("SSH Team Sync", "Synchronization is enabled but no suitable private keys were found for authenticating with your ssh.team domain.");
+						showSynchronizationSetupDialog();
 					} else {
 						try {
 							SshTeamHelper.addKey(Settings.getInstance().getSshteamUsername(), 
@@ -1971,7 +1985,7 @@ public class DesktopAgent extends AbstractAgentProcess {
 						} catch (NoSuchAlgorithmException | InterruptedException | URISyntaxException | SshException
 								| KeyTimeoutException e) {
 							Log.error("Failed to synchronize", e);
-							SWTUtil.showError("SSH Team Synchronization", "The key could not be synchronized with your ssh.team account. Check logs for more information.");
+							SWTUtil.showError("Desktop SSH Agent", "The key could not be synchronized with your ssh.team account. Check logs for more information.");
 						}
 					}
 							
@@ -2049,7 +2063,7 @@ public class DesktopAgent extends AbstractAgentProcess {
 					if(Settings.getInstance().isSynchronizeKeys() && kc.isTeamKey()) {
 						SshPublicKey authorizationKey = getAuthorizationKey();
 						if(Objects.isNull(authorizationKey)) {
-							SWTUtil.showInformation("SSH Team Synchronization", "Synchronization is enabled but no suitable private keys were found for authenticating with your ssh.team domain.");
+							showSynchronizationSetupDialog();
 						} else {
 							try {
 								SshTeamHelper.removeKey(Settings.getInstance().getSshteamUsername(), 
@@ -2064,7 +2078,7 @@ public class DesktopAgent extends AbstractAgentProcess {
 							} catch (NoSuchAlgorithmException | InterruptedException | URISyntaxException | SshException
 									| KeyTimeoutException e) {
 								Log.error("Failed to synchronize", e);
-								SWTUtil.showError("SSH Team Synchronization", "The key could not be synchronized with your ssh.team account. Check logs for more information.");
+								SWTUtil.showError("Desktop SSH Agent", "The key could not be synchronized with your ssh.team account. Check logs for more information.");
 							}
 						}
 					}
@@ -2391,14 +2405,33 @@ public class DesktopAgent extends AbstractAgentProcess {
 					Settings.getInstance().getSshteamPort(), getLocalKeyStore());
 			
 			if(results.isEmpty()) {
-				SWTUtil.showInformation("Desktop Agent", 
-						"To start synchronization you must upload one of the public keys from this agent to your ssh.team account");
+				showSynchronizationSetupDialog();
 			} else {
 				checkRotationPolicy();
 			}
 		}
 	}
 	
+	
+	private void showSynchronizationSetupDialog() {
+		SWTUtil.safeAsyncExec(new Runnable() {
+			public void run() {
+				CustomDialog dialog = new CustomDialog(new Shell(), SWT.ICON_WARNING, SWT.ON_TOP | SWT.SYSTEM_MODAL, "OK", "Help");
+				
+		        dialog.setText("Desktop SSH Agent");
+		        dialog.setMessage("Synchronization has been enabled but there are no common keys to authenticate with. To start synchronization you must upload one of the public keys from this agent to your ssh.team account. Click the Help button for more information on setting this up.");
+		        dialog.open();
+		        if(dialog.getSelected().equals("Help")) {
+		        	if (Desktop.isDesktopSupported()) {
+						try {
+							Desktop.getDesktop().browse(new URI("https://jadaptive.com/app/manpage/agent/article/3561732"));
+						} catch (IOException | URISyntaxException e1) {
+						}
+					}
+		        }
+			}
+		});
+	}
 	
 
 }
