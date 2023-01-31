@@ -44,6 +44,7 @@ import com.sshtools.agent.exceptions.KeyTimeoutException;
 import com.sshtools.common.logger.Log;
 import com.sshtools.common.publickey.SshKeyUtils;
 import com.sshtools.common.ssh.SshException;
+import com.sshtools.common.ssh.components.SshKeyPair;
 import com.sshtools.common.ssh.components.SshPublicKey;
 import com.sshtools.common.util.ByteArrayWriter;
 import com.sshtools.desktop.agent.ExtendedKeyInfo;
@@ -88,6 +89,33 @@ public class SshTeamHelper {
 		return policy.getResource();
 	}
 	
+	public static boolean checkKey(String username, String hostname, int port, SshKeyPair pair) {
+
+		try {
+			long nonce = SecureRandom.getInstanceStrong().nextLong();
+			
+			String key = SshKeyUtils.getOpenSSHFormattedKey(pair.getPublicKey());
+			Map<String,String> params = new HashMap<>();
+			params.put("username", username);
+			params.put("nonce", String.valueOf(nonce));
+			params.put("authorizationKey", key);
+			params.put("authorization", generateAuthorization(username, pair, nonce, key));
+			
+			String result = doRequestString(String.format("https://%s:%d/app/api/authorizedKeys/policy", hostname, port), params);
+			
+			ObjectMapper mapper = new ObjectMapper();
+			SshTeamPolicyStatus policy = mapper.readValue(result, SshTeamPolicyStatus.class);
+			
+			if(!policy.isSuccess()) {
+				throw new IOException(policy.getMessage());
+			}
+			return true;
+		} catch(Throwable e) {
+			Log.error("Check for ssh.team synchronization failed", e);
+			return false;
+		}
+	}
+	
 	
 	public static void addKey(String username, String hostname, int port, SshPublicKey publicKey, KeyStore sign, String name, SshPublicKey newKey) throws NoSuchAlgorithmException, IOException, InterruptedException, URISyntaxException, SshException, KeyTimeoutException {
 		
@@ -126,14 +154,25 @@ public class SshTeamHelper {
 
 	private static String generateAuthorization(String username, KeyStore keystore, SshPublicKey publicKey, long nonce, String... other) throws IOException, SshException, KeyTimeoutException {
 		
+		if(Log.isInfoEnabled()) {
+			Log.info("Generating authorization for {}", username);
+			Log.info("Nonce {}", String.valueOf(nonce));
+		}
 		try(ByteArrayWriter baw = new ByteArrayWriter()) {
 			baw.writeString(username);
 			baw.writeUINT64(nonce);
 			
 			for(String o : other) {
+				if(Log.isInfoEnabled()) {
+					Log.info("And {}", o);
+				}
 				baw.writeString(o);
 			}
 			
+			if(Log.isInfoEnabled()) {
+				Log.info("Signing data {}", Base64.getUrlEncoder().encodeToString(baw.toByteArray()));
+				Log.info("With key {}", SshKeyUtils.getFingerprint(publicKey));
+			}
 			int flags = 0;
 			switch(publicKey.getSigningAlgorithm()) {
 			case SshContext.PUBLIC_KEY_RSA_SHA256:
@@ -146,6 +185,33 @@ public class SshTeamHelper {
 				break;
 			}
 			byte[] sig = keystore.performHashAndSign(publicKey, Collections.emptyList(), baw.toByteArray(), flags);
+			return Base64.getUrlEncoder().encodeToString(sig);
+		}
+	}
+	
+	private static String generateAuthorization(String username, SshKeyPair pair, long nonce, String... other) throws IOException, SshException, KeyTimeoutException {
+		
+		try(ByteArrayWriter baw = new ByteArrayWriter()) {
+			baw.writeString(username);
+			baw.writeUINT64(nonce);
+			
+			for(String o : other) {
+				baw.writeString(o);
+			}
+			
+			byte[] sig;
+			switch(pair.getPublicKey().getSigningAlgorithm()) {
+			case SshContext.PUBLIC_KEY_RSA_SHA256:
+				sig = pair.getPrivateKey().sign(baw.toByteArray(), SshContext.PUBLIC_KEY_RSA_SHA256);
+				break;
+			case SshContext.PUBLIC_KEY_RSA_SHA512:
+				sig = pair.getPrivateKey().sign(baw.toByteArray(), SshContext.PUBLIC_KEY_RSA_SHA512);
+				break;
+			default:
+				sig = pair.getPrivateKey().sign(baw.toByteArray(), pair.getPublicKey().getSigningAlgorithm());
+				break;
+			}
+			
 			return Base64.getUrlEncoder().encodeToString(sig);
 		}
 	}
@@ -164,12 +230,15 @@ public class SshTeamHelper {
 			    .build();
 
 		HttpResponse<?> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+		if(response.statusCode()!=200) {
+			throw new IOException(url + " returned " + response.statusCode());
+		}
 		return response.body().toString();
 	}
 	
 	private static void doRequest(String url, Map<String,String> params) throws IOException, InterruptedException, URISyntaxException {
 		
-	ObjectMapper mapper = new ObjectMapper();
+		ObjectMapper mapper = new ObjectMapper();
 		JsonRequestStatus status = mapper.readValue(doRequestString(url, params), JsonRequestStatus.class);
 	
 		if(!status.isSuccess()) {

@@ -1962,13 +1962,22 @@ public class DesktopAgent extends AbstractAgentProcess {
 				Settings.getInstance().addPrivateKey(pair.getPublicKey(), keyfile);
 				
 				localKeys.addKey(pair, description, cs);
-				
+			
 				if(Settings.getInstance().isSynchronizeKeys()) {
 					
 					SshPublicKey authorizationKey = getAuthorizationKey();
 					if(Objects.isNull(authorizationKey)) {
-						showSynchronizationSetupDialog();
-					} else {
+						if(SshTeamHelper.checkKey(Settings.getInstance().getSshteamUsername(), 
+								Settings.getInstance().getSshteamDomain(),
+								Settings.getInstance().getSshteamPort(),
+								pair)) {
+							authorizationKey = pair.getPublicKey();
+						} else {
+							showSynchronizationSetupDialog();
+						}
+					}
+					
+					if(Objects.nonNull(authorizationKey)) {
 						try {
 							SshTeamHelper.addKey(Settings.getInstance().getSshteamUsername(), 
 									Settings.getInstance().getSshteamDomain(),
@@ -1982,20 +1991,17 @@ public class DesktopAgent extends AbstractAgentProcess {
 							cs.setName(keyfile.getName());
 
 							
-						} catch (NoSuchAlgorithmException | InterruptedException | URISyntaxException | SshException
-								| KeyTimeoutException e) {
+						} catch (Throwable e) {
 							Log.error("Failed to synchronize", e);
 							SWTUtil.showError("Desktop SSH Agent", "The key could not be synchronized with your ssh.team account. Check logs for more information.");
 						}
 					}
-							
 				}
-				
-				
+
 				displayKeys();
 				ret = true;
 			} catch (IOException e) {
-				Log.error("Failed to add temporary key", e);
+				Log.error("Failed to add key", e);
 				ret = false;
 			}
 			
