@@ -964,16 +964,23 @@ public class DesktopAgent extends AbstractAgentProcess {
 			Log.info("Quitting ({})", killSWT);
 		}
 		
-//		Thread t = new Thread("Close-Agent-Thread") {
-//			public void run() {
+		/* TODO: This is a work around to the fact that server.close()
+		 * always just hangs on windows. This effectively makes it a noop
+		 * and might as well not be here, if it weren't for the fact that this
+		 * works correctly. Even then, there would be no guarantee this actually
+		 * runs before the JVM exits. I question if it should be here at all
+		 * if the underlying bug cannot be fixed.
+		 */
+		Thread t = new Thread("Close-Agent-Thread") {
+			public void run() {
 				try {
 					server.close();
 				} catch (IOException e) {
 				}				
-//			}
-//		};
-//		t.setDaemon(true);
-//		t.start();
+			}
+		};
+		t.setDaemon(true);
+		t.start();
 
 		if(pageantProcess!=null) {
 			if(Log.isInfoEnabled()) {
