@@ -966,10 +966,10 @@ public class DesktopAgent extends AbstractAgentProcess {
 		
 //		Thread t = new Thread("Close-Agent-Thread") {
 //			public void run() {
-				try {
-					server.close();
-				} catch (IOException e) {
-				}				
+//				try {
+//					server.close();
+//				} catch (IOException e) {
+//				}				
 //			}
 //		};
 //		t.setDaemon(true);
