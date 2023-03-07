@@ -28,7 +28,7 @@
 	<parent>
 		<groupId>com.sshtools</groupId>
 		<artifactId>desktop-ssh-agent-group</artifactId>
-		<version>3.1.0-SNAPSHOT</version>
+		<version>3.1.0</version>
 	</parent>
 	<name>Desktop SSH Agent</name>
 	<artifactId>desktop-ssh-agent</artifactId>
@@ -242,7 +242,7 @@
 		</repository>
 		<repository>
 			<id>ext-snapshots-local</id>
-        	<url>http://artifactory.jadaptive.com/ext-snapshots-local</url>
+        	<url>https://artifactory.jadaptive.com/ext-snapshots-local</url>
         	<snapshots/>
         	<releases>
 				<enabled>false</enabled>				
