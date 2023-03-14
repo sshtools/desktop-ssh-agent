@@ -51,13 +51,13 @@ public class Settings {
 	private IconMode iconMode = IconMode.AUTO;
 	private boolean synchronizeKeys = false;
 	
-	String logonboxDomain;
-	int logonboxPort = 443;
-	String logonboxUsername;
+	private String logonboxDomain;
+	private int logonboxPort = 443;
+	private String logonboxUsername;
 	
-	String sshteamDomain;
-	int sshteamPort = 443;
-	String sshteamUsername;
+	private String sshteamDomain;
+	private int sshteamPort = 443;
+	private String sshteamUsername;
 	
 	private boolean strictSSL = true;
 	
@@ -79,8 +79,8 @@ public class Settings {
 				properties.load(in);
 			}
 			
-			terminalCommand = properties.getProperty("terminalCommand");
-			terminalArguments = properties.getProperty("terminalArguments");
+			terminalCommand = properties.getProperty("terminalCommand", "");
+			terminalArguments = properties.getProperty("terminalArguments", "");
 			useBuiltInTerminal = Boolean.valueOf(properties.getProperty("useBuiltInTerminal", "true"));
 			
 			iconMode = IconMode.valueOf(properties.getProperty("iconMode", IconMode.AUTO.name()));

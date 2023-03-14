@@ -22,7 +22,6 @@ import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Collection;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.swt.SWT;
@@ -46,12 +45,10 @@ import org.eclipse.swt.widgets.TabFolder;
 import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Text;
 
-import com.sshtools.common.ssh.components.SshPublicKey;
 import com.sshtools.desktop.agent.DesktopAgent;
 import com.sshtools.desktop.agent.Settings;
 import com.sshtools.desktop.agent.Settings.IconMode;
-import com.sshtools.desktop.agent.sshteam.SshTeamHelper;
-import com.sshtools.desktop.agent.sshteam.SshTeamPolicy;
+import com.sshtools.jaul.Phase;
 
 public class SettingsDialog extends Dialog {
 
@@ -64,6 +61,7 @@ public class SettingsDialog extends Dialog {
 	Button builtInTerminal;
 	Button keyWizard;
 	Combo iconMode;
+	Combo phase;
 	Text username;
 	Text deviceName;
 	Text hostname;
@@ -71,6 +69,7 @@ public class SettingsDialog extends Dialog {
 	Button strictSSL;
 	Button authorize;
 	Button synchronizeKeys;
+	Button automaticUpdates;
 	
 	Text logonboxUsername;
 	Text logonboxDomain;
@@ -93,7 +92,12 @@ public class SettingsDialog extends Dialog {
 	public void open()
     {
         shell.setText(getText());
-        createContents(shell);
+        try {
+        	createContents(shell);
+        }
+        catch(Exception e) {
+        	e.printStackTrace();
+        }
         shell.pack();
         
         Point size = shell.computeSize(-1, -1);
@@ -139,6 +143,10 @@ public class SettingsDialog extends Dialog {
 		tabUI.setText("Options");
 		tabUI.setControl(new UserInterfacePreferencePanel(tabFolder));
 		
+		TabItem tabUpdates= new TabItem(tabFolder, SWT.NONE);
+		tabUpdates.setText("Updates");
+		tabUpdates.setControl(new UpdatePreferencePanel(tabFolder));
+		
 		data = new GridData(GridData.HORIZONTAL_ALIGN_END);
 		Button b = new Button(shell, SWT.PUSH);
 		b.setText("Save");
@@ -157,8 +165,12 @@ public class SettingsDialog extends Dialog {
 	protected void saveSettings() {
 		
 		try {
+			agent.getUpdateService().getContext().setPhase(Phase.values()[phase.getSelectionIndex()]);
+			agent.getUpdateService().getContext().setAutomaticUpdates(automaticUpdates.getSelection());
+			
 			Settings.getInstance().setUseBuiltInTerminal(builtInTerminal.getSelection());
 			Settings.getInstance().setIconMode(IconMode.values()[iconMode.getSelectionIndex()]);
+			
 			Settings.getInstance().setTerminalCommand(terminalCommand.getText());
 			Settings.getInstance().setTerminalArguments(terminalArguments.getText());
 			
@@ -179,6 +191,7 @@ public class SettingsDialog extends Dialog {
 			
 			agent.checkSynchronization();
 		} catch (Throwable e) {
+			e.printStackTrace();
 			SWTUtil.showError("Preferences", 
 					String.format("Could not save preferences!\r\n%s",e.getMessage()));
 		}
@@ -365,6 +378,30 @@ public class SettingsDialog extends Dialog {
 		    strictSSL.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 		    strictSSL.setSelection(!Settings.getInstance().isStrictSSL());
 		    strictSSL.setText("Allow self-signed certificates and invalid hostnames.");
+		    new Label(this, SWT.NONE);
+		  }
+	}
+	
+	class UpdatePreferencePanel extends Composite {
+
+		  public UpdatePreferencePanel(Composite c) {
+		    super(c, SWT.NO_BACKGROUND);
+		    GridLayout layout = new GridLayout(1, true);
+		    layout.marginBottom = layout.marginTop = layout.marginLeft = layout.marginRight = 8;
+			this.setLayout(layout);
+
+			new Label(this, SWT.NONE).setText("Updates Channel");
+		    
+			phase = new Combo(this, SWT.READ_ONLY);
+			phase.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+			phase.setItems("Stable", "Early Access", "Developer Continuous Builds");
+			phase.select(agent.getUpdateService().getContext().getPhase().ordinal());
+			phase.setText("Select the update channel.");
+		    
+			automaticUpdates = new Button(this, SWT.CHECK);
+			automaticUpdates.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+			automaticUpdates.setSelection(agent.getUpdateService().getContext().isAutomaticUpdates());
+			automaticUpdates.setText("Automatic updates.");
 		    new Label(this, SWT.NONE);
 		  }
 	}

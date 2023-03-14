@@ -28,7 +28,7 @@
 	<parent>
 		<groupId>com.sshtools</groupId>
 		<artifactId>desktop-ssh-agent-group</artifactId>
-		<version>3.1.0</version>
+		<version>3.2.0-SNAPSHOT</version>
 	</parent>
 	<name>Desktop SSH Agent</name>
 	<artifactId>desktop-ssh-agent</artifactId>
@@ -126,6 +126,29 @@
 	</profiles>
 	<dependencies>
 		<dependency>
+			<groupId>com.install4j</groupId>
+			<artifactId>install4j-runtime</artifactId>
+			<version>10.0.4</version>
+			<!-- MUST be provided, the runtime is added by I4J itself -->
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.sshtools</groupId>
+			<artifactId>jaul</artifactId>
+			<version>0.0.2-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>info.picocli</groupId>
+			<artifactId>picocli</artifactId>
+			<version>4.6.3</version>
+		</dependency>
+		<dependency>
 			<groupId>org.eclipse.platform</groupId>
 			<artifactId>org.eclipse.swt</artifactId>
 			<version>${swt.version}</version>
@@ -191,6 +214,10 @@
 		    			dbus-java-transport-jnr-unixsocket
 		    		</artifactId>
 		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>org.slf4j</groupId>
+		    		<artifactId>slf4j-api</artifactId>
+		    	</exclusion>
 		    </exclusions>
 		</dependency>
 		<dependency>
@@ -202,6 +229,12 @@
 			<groupId>com.github.hypfvieh</groupId>
 			<artifactId>dbus-java-transport-native-unixsocket</artifactId>
 			<version>4.2.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -213,6 +246,11 @@
 			<artifactId>two-slices</artifactId>
 			<version>0.9.1-SNAPSHOT</version>
 		</dependency>
+		<dependency>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-simple</artifactId>
+		    <version>2.0.6</version>
+		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.github.javakeyring/java-keyring -->
 		<dependency>
 			<groupId>com.github.javakeyring</groupId>
@@ -222,6 +260,10 @@
 				<exclusion>
 					<groupId>de.swiesend</groupId>
 					<artifactId>secret-service</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.slf4j</groupId>
+					<artifactId>slf4j-api</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -259,6 +301,10 @@
 			<name>sshtools-snapshots</name>
 			<snapshots><enabled>true</enabled></snapshots>
 			<url>https://artifactory.jadaptive.com/public-snapshots</url>
+		</repository>
+		<repository>
+			<id>ej-technologies</id>
+			<url>https://maven.ej-technologies.com/repository</url>
 		</repository>
 	</repositories>
 	<build>

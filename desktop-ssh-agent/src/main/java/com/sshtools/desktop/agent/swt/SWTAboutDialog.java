@@ -29,6 +29,7 @@ import org.eclipse.swt.events.SelectionListener;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Dialog;
@@ -37,15 +38,22 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Link;
 import org.eclipse.swt.widgets.Shell;
 
-import com.sshtools.desktop.agent.SSHTOOLSVersion;
+import com.sshtools.desktop.agent.DesktopAgent;
+import com.sshtools.jaul.ArtifactVersion;
 
 public class SWTAboutDialog extends Dialog {
 	private Shell shell;
 	private Composite accessory;
+	private Label newVersionLabel;
+	private Button checkUpdateButton;
+	private DesktopAgent agent;
 
 	public SWTAboutDialog(Display parent, String closeText, String title, final Image image, String message, String description,
-			String copyright, final String link) {
+			String copyright, final String link, DesktopAgent agent) {
 		super(new Shell(parent), SWT.ON_TOP | SWT.TITLE | SWT.CLOSE | SWT.BORDER | SWT.RESIZE | SWT.APPLICATION_MODAL);
+		
+		this.agent = agent;
+		
 		// Create the dialog window
 		shell = new Shell(parent, getStyle());
 		shell.setText(getText());
@@ -82,7 +90,7 @@ public class SWTAboutDialog extends Dialog {
 		data.grabExcessHorizontalSpace = true;
 		descriptionLabel.setLayoutData(data);
 		Label versionLabel = new Label(commonAboutDetails, SWT.WRAP | SWT.CENTER);
-		versionLabel.setText("Version " + SSHTOOLSVersion.getVersion());
+		versionLabel.setText("Version " + ArtifactVersion.getVersion("desktop-ssh-agent", "com.sshtools", "desktop-ssh-agent"));
 		data = new GridData();
 		data.widthHint = 400;
 		data.horizontalAlignment = GridData.CENTER;
@@ -118,6 +126,40 @@ public class SWTAboutDialog extends Dialog {
 				}
 			});
 		}
+
+		newVersionLabel = new Label(commonAboutDetails, SWT.WRAP | SWT.CENTER);
+		data = new GridData();
+		data.widthHint = 400;
+		data.horizontalAlignment = GridData.CENTER;
+		data.grabExcessHorizontalSpace = true;
+		newVersionLabel.setLayoutData(data);
+
+		checkUpdateButton = new Button(commonAboutDetails, SWT.CENTER);
+		data = new GridData();
+		data.horizontalAlignment = GridData.CENTER;
+		data.grabExcessHorizontalSpace = true;
+		checkUpdateButton.setLayoutData(data);
+		checkUpdateButton.addSelectionListener(new SelectionListener() {
+			public void widgetDefaultSelected(SelectionEvent e) {
+			}
+
+			public void widgetSelected(SelectionEvent e) {
+				if (agent.getUpdateService().getAvailableVersion() == null)
+					agent.updateCheck((v) -> {
+					}, (ex) -> {
+					});
+				else {
+					agent.update((v) -> {
+					});
+				}
+			}
+		});
+		
+		agent.getUpdateService().setOnBusy((b) -> parent.asyncExec(() -> updateButtonStatus()));
+		agent.getUpdateService().setOnAvailableVersion((v) -> parent.asyncExec(() -> updateButtonStatus()));
+		updateButtonStatus();
+		
+		
 		// Accessory
 		accessory = new Composite(commonAboutDetails, 0);
 		accessory.setLayout(new GridLayout(1, false));
@@ -137,5 +179,28 @@ public class SWTAboutDialog extends Dialog {
 
 	public Composite getAccessory() {
 		return accessory;
+	}
+	
+	private void updateButtonStatus() {
+		if(agent.getUpdateService().isUpdating()) {
+			checkUpdateButton.setText("Please Wait");
+			checkUpdateButton.setEnabled(false);
+			newVersionLabel.setVisible(true);
+			if(agent.getUpdateService().isCheckOnly())
+				newVersionLabel.setText("Checking ..");
+			else
+				newVersionLabel.setText("Updating ..");
+		}
+		else if (agent.getUpdateService().isNeedsUpdating()) {
+			checkUpdateButton.setEnabled(true);
+			newVersionLabel.setVisible(true);
+			checkUpdateButton.setText("Update");
+			newVersionLabel.setText("Version " + agent.getUpdateService().getAvailableVersion() + " is available.");
+		}
+		else {
+			checkUpdateButton.setEnabled(true);
+			newVersionLabel.setVisible(false);
+			checkUpdateButton.setText("Check For Update");
+		}
 	}
 }
