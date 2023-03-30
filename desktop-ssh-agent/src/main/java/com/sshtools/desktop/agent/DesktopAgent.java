@@ -319,7 +319,7 @@ public class DesktopAgent extends AbstractAgentProcess implements Callable<Integ
 			
 			updateService.setOnAvailableVersion(v -> {
 				if(v != null) {
-					if(preferences.getBoolean("automaticUpdates", true)) {
+					if(preferences.getBoolean(AppRegistry.KEY_AUTOMATIC_UPDATES, true)) {
 						Toast.builder()
 							.type(ToastType.INFO)
 							.title("Updating")
@@ -2572,10 +2572,10 @@ public class DesktopAgent extends AbstractAgentProcess implements Callable<Integ
 
 	private Optional<App> registerApp() {
 		try {
-			return Optional.of(AppRegistry.get().get(this.getClass()));
+			return Optional.of(AppRegistry.get().launch(this.getClass()));
 		}
 		catch(Exception e) {
-			System.err.println(MessageFormat.format("Failed to register app. No Jaul update features will be available, and application preferences root is now determined by the class name {0}. {1}", getClass().getName(), e.getMessage() == null ? "No message supplied." : e.getMessage()));
+			System.err.println(MessageFormat.format("Failed to determine app installation. No update features will be available, and application preferences root is now determined by the class name {0}. {1}", getClass().getName(), e.getMessage() == null ? "No message supplied." : e.getMessage()));
 			return Optional.empty();
 		}
 	}
