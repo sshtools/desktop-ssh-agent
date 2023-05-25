@@ -22,7 +22,6 @@ import java.awt.Desktop;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Collection;
 
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.swt.SWT;
@@ -46,12 +45,9 @@ import org.eclipse.swt.widgets.TabFolder;
 import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Text;
 
-import com.sshtools.common.ssh.components.SshPublicKey;
 import com.sshtools.desktop.agent.DesktopAgent;
 import com.sshtools.desktop.agent.Settings;
 import com.sshtools.desktop.agent.Settings.IconMode;
-import com.sshtools.desktop.agent.sshteam.SshTeamHelper;
-import com.sshtools.desktop.agent.sshteam.SshTeamPolicy;
 
 public class SettingsDialog extends Dialog {
 
