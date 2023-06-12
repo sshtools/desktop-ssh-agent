@@ -28,7 +28,7 @@
 	<parent>
 		<groupId>com.sshtools</groupId>
 		<artifactId>desktop-ssh-agent-group</artifactId>
-		<version>3.1.1-SNAPSHOT</version>
+		<version>3.1.1</version>
 	</parent>
 	<name>Desktop SSH Agent</name>
 	<artifactId>desktop-ssh-agent</artifactId>

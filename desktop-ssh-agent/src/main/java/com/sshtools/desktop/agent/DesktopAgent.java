@@ -87,7 +87,9 @@ import org.eclipse.swt.widgets.TrayItem;
 import com.github.javakeyring.BackendNotSupportedException;
 import com.github.javakeyring.Keyring;
 import com.github.javakeyring.PasswordAccessException;
+import com.sshtools.agent.ForwardingNotice;
 import com.sshtools.agent.InMemoryKeyStore;
+import com.sshtools.agent.KeyConstraints;
 import com.sshtools.agent.KeyStore;
 import com.sshtools.agent.exceptions.KeyTimeoutException;
 import com.sshtools.agent.openssh.OpenSSHConnectionFactory;
@@ -152,7 +154,8 @@ public class DesktopAgent extends AbstractAgentProcess {
 	Map<SshPublicKey, String> deviceKeys = new HashMap<SshPublicKey, String>();
 	Timer timer;
 	
-	InMemoryKeyStore localKeys = new InMemoryKeyStore();
+	InMemoryKeyStore localKeys;
+
 	AtomicBoolean online = new AtomicBoolean();
 	Runnable restartCallback;
 	Runnable shutdownCallback;
@@ -184,6 +187,18 @@ public class DesktopAgent extends AbstractAgentProcess {
 		try {
 			
 			Settings.getInstance().load();
+			
+			localKeys = new InMemoryKeyStore() {
+				public byte[] performHashAndSign(SshPublicKey pubkey, 
+						List<ForwardingNotice> forwardingNodes, 
+						byte[] data, int flags) throws KeyTimeoutException, SshException {
+					byte[] res = super.performHashAndSign(pubkey, forwardingNodes, data, flags);
+					ExtendedKeyInfo kc = (ExtendedKeyInfo) getKeyConstraints(pubkey);
+					showNotification(ToastType.INFO, "Desktop SSH Agent", 
+							String.format("Signed authentication request for key %s", kc.getName()));	
+					return res;
+				}
+			};
 			
 			keystore = new MobileDeviceKeystore(this, localKeys);
 			//keystore.setListener(this);
