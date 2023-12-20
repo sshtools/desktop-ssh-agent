@@ -28,7 +28,8 @@
 	<parent>
 		<groupId>com.sshtools</groupId>
 		<artifactId>desktop-ssh-agent-group</artifactId>
-		<version>3.1.1</version>
+		<version>3.1.2-SNAPSHOT</version>
+		<relativePath>../</relativePath>
 	</parent>
 	<name>Desktop SSH Agent</name>
 	<artifactId>desktop-ssh-agent</artifactId>
@@ -205,7 +206,7 @@
 		<dependency>
 		    <groupId>de.swiesend</groupId>
 		    <artifactId>secret-service</artifactId>
-		    <version>1.8.0-jdk17</version>
+		    <version>1.8.1-jdk17</version>
 		    <exclusions>
 		    	<exclusion>
 		    		<groupId>com.github.hypfvieh</groupId>
@@ -233,13 +234,13 @@
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>two-slices</artifactId>
-			<version>0.9.1-SNAPSHOT</version>
+			<version>0.9.1</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.github.javakeyring/java-keyring -->
 		<dependency>
 			<groupId>com.github.javakeyring</groupId>
 			<artifactId>java-keyring</artifactId>
-			<version>1.0.2-SNAPSHOT</version>
+			<version>1.0.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>de.swiesend</groupId>

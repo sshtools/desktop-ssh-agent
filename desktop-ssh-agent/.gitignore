@@ -2,3 +2,4 @@
 *.classpath
 /agent.log
 /agent.properties
+/.install4j
