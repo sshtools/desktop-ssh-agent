@@ -20,19 +20,17 @@ package com.sshtools.desktop.agent.term;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.sshtools.client.SshClient;
-import com.sshtools.client.SshClientContext;
-import com.sshtools.client.sftp.SftpClient;
+import com.sshtools.client.SshClient.SshClientBuilder;
+import com.sshtools.client.sftp.SftpClient.SftpClientBuilder;
 import com.sshtools.common.publickey.authorized.AuthorizedKeyFile;
+import com.sshtools.common.sftp.PosixPermissions.PosixPermissionsBuilder;
 import com.sshtools.common.sftp.SftpStatusException;
 import com.sshtools.common.ssh.ChannelOpenException;
 import com.sshtools.common.ssh.SshException;
-import com.sshtools.common.ssh.components.SshPublicKey;
 import com.sshtools.desktop.agent.DesktopAgent;
 import com.sshtools.desktop.agent.JsonConnection;
 import com.sshtools.terminal.emulation.Terminal;
@@ -59,13 +57,11 @@ public class ShellTerminalConnector extends AbstractTerminalConnector {
 		}
 		
 		try {
-			this.ssh = new SshClient(serverName, serverPort, username) {
-
-				@Override
-				protected void configure(SshClientContext sshContext) throws SshException, IOException {
-					configureContext(sshContext);
-				}
-			};
+			this.ssh = SshClientBuilder.create().
+					withTarget(serverName, serverPort).
+					withUsername(username).
+					onConfigure(this::configureContext).
+					build(); 
 			
 			vt.clearScreen();
 			
@@ -109,7 +105,7 @@ public class ShellTerminalConnector extends AbstractTerminalConnector {
 	
 	public void synchronizeAuthorizedKeys() throws IOException {
 		
-		Map<SshPublicKey,String> keys = agent.getKeys();
+		var keys = agent.getKeys();
 		
 		if(keys.isEmpty()) {
 			writeLine("If you actually had some keys I would be able configure them! Please add keys to the agent first.");
@@ -120,12 +116,12 @@ public class ShellTerminalConnector extends AbstractTerminalConnector {
 		try {
 			
 			writeLine("Public key authentication is available.");
-			String answer = promptForYesNo("Do you want to configure this server with your keys? ");
+			var answer = promptForYesNo("Do you want to configure this server with your keys? ");
 			if("YES".equalsIgnoreCase(answer) || "Y".equalsIgnoreCase(answer)) {
 				writeLine("Checking ~/.ssh/authorized_keys");
-				try(SftpClient sftp = new SftpClient(ssh)) {
+				try(var sftp = SftpClientBuilder.create().withClient(ssh).build()) {
 				
-				AuthorizedKeyFile authorizedKeys = new AuthorizedKeyFile();
+					var authorizedKeys = new AuthorizedKeyFile();
 					try {
 						sftp.stat(".ssh/authorized_keys");
 						writeLine("Opening ~/.ssh/authorized_keys");
@@ -136,9 +132,9 @@ public class ShellTerminalConnector extends AbstractTerminalConnector {
 						
 					}
 					
-					for(Map.Entry<SshPublicKey, String> entry : keys.entrySet()) {
-						SshPublicKey key = entry.getKey();
-						String comment = entry.getValue();
+					for(var entry : keys.entrySet()) {
+						var key = entry.getKey();
+						var comment = entry.getValue();
 						
 						if(!authorizedKeys.isAuthorizedKey(key)) {
 							
@@ -153,11 +149,11 @@ public class ShellTerminalConnector extends AbstractTerminalConnector {
 					
 					writeLine("Saving ~/.ssh/authorized_keys");
 					
-					try(OutputStream out = sftp.getOutputStream(".ssh/authorized_keys")) {
+					try(var out = sftp.getOutputStream(".ssh/authorized_keys")) {
 						out.write(authorizedKeys.getFormattedFile().getBytes("UTF-8"));
 					}
 					
-					sftp.chmod(0644, ".ssh/authorized_keys");
+					sftp.chmod(PosixPermissionsBuilder.create().fromBitmask(0644).build(), ".ssh/authorized_keys");
 					
 					promptForAnswer("Authorized keys configuration complete. Press a key to continue.");
 				}
