@@ -143,8 +143,6 @@ import picocli.CommandLine.IVersionProvider;
 import picocli.CommandLine.Model.CommandSpec;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Spec;
-import pt.davidafsilva.apple.OSXKeychain;
-import pt.davidafsilva.apple.OSXKeychainException;
 
 @Command(name = "desktop-ssh-agent", description = "Desktop SSH agent", versionProvider = DesktopAgent.Version.class)
 @JaulApp(updatesUrl = "https://sshtools-public.s3.eu-west-1.amazonaws.com/sshagent/${phase}/updates.xml",
@@ -202,7 +200,6 @@ public class DesktopAgent extends AbstractAgentProcess implements Callable<Integ
 	boolean quiting;
 	
 	Keyring keyring = null;
-	OSXKeychain keychain = null;
 	
 	ConnectionStore connectionStore = new ConnectionStore();
 	UpdateService updateService;
@@ -369,41 +366,22 @@ public class DesktopAgent extends AbstractAgentProcess implements Callable<Integ
 	}
 
 	private void setupKeychain() {
-		if (SystemUtils.IS_OS_MAC) {
-			try {
-				keychain = OSXKeychain.getInstance();
-				Log.info("Loaded OSX Key Chain");
-			} catch (OSXKeychainException e) {
-				Log.error("No support for OSX Key Chain", e);
-			}
-		} else {
-		
-			try {
-				keyring = Keyring.create();
-				Log.info("Loaded key ring");
-			} catch (BackendNotSupportedException e) {
-				Log.error("No support for key ring", e);
-			}
+		try {
+			keyring = Keyring.create();
+			Log.info("Loaded key ring");
+		} catch (BackendNotSupportedException e) {
+			Log.error("No support for key ring", e);
 		}
 	}
 	
 	protected boolean hasKeyChain() {
-		return Objects.nonNull(keychain) || Objects.nonNull(keyring);
+		return Objects.nonNull(keyring);
 	}
 
 	protected String getPassphrase(File keyfile) {
 		
 		String passphrase = null;
-		if (SystemUtils.IS_OS_MAC && Objects.nonNull(keychain)) {
-			try {
-				passphrase = keychain.findGenericPassword(getServiceName(keyfile), getAccountName()).orElse(null);
-			} catch (OSXKeychainException e) {
-				Log.error("Key chain failure", e);
-			}
-			if(Objects.nonNull(passphrase)) {
-				return passphrase;
-			}
-		} else if(Objects.nonNull(keyring)) {
+		if(Objects.nonNull(keyring)) {
 			
 			try {
 				passphrase = keyring.getPassword(getServiceName(keyfile), getAccountName());
@@ -428,13 +406,7 @@ public class DesktopAgent extends AbstractAgentProcess implements Callable<Integ
 	}
 	
 	protected void storePassphrase(File keyfile, String passphrase) {
-		if (SystemUtils.IS_OS_MAC && Objects.nonNull(keychain)) {
-			try {
-				keychain.addGenericPassword(getServiceName(keyfile), getAccountName(), passphrase);
-			} catch (OSXKeychainException e) {
-				Log.error("Failed to add passphrase to key chain", e);
-			}
-		} else if(Objects.nonNull(keyring)) {
+		if(Objects.nonNull(keyring)) {
 			
 			try {
 				keyring.setPassword(getServiceName(keyfile), getAccountName(), passphrase);

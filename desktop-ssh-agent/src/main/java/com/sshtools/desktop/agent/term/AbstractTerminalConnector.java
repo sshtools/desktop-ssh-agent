@@ -41,11 +41,9 @@ import com.sshtools.client.KeyboardInteractiveAuthenticator;
 import com.sshtools.client.KeyboardInteractivePrompt;
 import com.sshtools.client.KeyboardInteractivePromptCompletor;
 import com.sshtools.client.PasswordAuthenticator;
-import com.sshtools.client.SessionChannelNG;
 import com.sshtools.client.SshClient;
 import com.sshtools.client.SshClientContext;
-import com.sshtools.client.shell.ShellTimeoutException;
-import com.sshtools.client.tasks.ShellTask;
+import com.sshtools.client.tasks.ShellTask.ShellTaskBuilder;
 import com.sshtools.client.tasks.Task;
 import com.sshtools.common.knownhosts.KnownHostsKeyVerification;
 import com.sshtools.common.logger.Log;
@@ -242,45 +240,26 @@ public abstract class AbstractTerminalConnector {
 	protected abstract void runConnector(Terminal vt);
 
 	protected Task createSession(SshClient ssh) throws SshException, ChannelOpenException {
-
-		return new ShellTask(ssh) {
-
-			@Override
-			protected void beforeStartShell(SessionChannelNG session) {
-				session.allocatePseudoTerminal("xterm", vt.getColumns(), vt.getRows());
-				vt.addCloseListener((terminal) -> session.close());
-				vt.addResizeListener((terminal, cols, rows, remote) -> session.changeTerminalDimensions(cols, rows, 0, 0));
-				vt.setInput((data, off, len) -> {
-				    try {
-						session.sendData(data, off, len);
-					} catch (Exception e) {
-						if(!session.isClosed()) {
-							throw e;
+		return ShellTaskBuilder.create().
+				withTermType("xterm").
+				withRows(vt.getRows()).
+				withColumns(vt.getColumns()).
+				onBeforeOpen((t, session) -> {
+					session.allocatePseudoTerminal("xterm", vt.getColumns(), vt.getRows());
+					vt.addCloseListener((terminal) -> session.close());
+					vt.addResizeListener((terminal, cols, rows, remote) -> session.changeTerminalDimensions(cols, rows, 0, 0));
+					vt.setInput((data, off, len) -> {
+					    try {
+							session.sendData(data, off, len);
+						} catch (Exception e) {
+							if(!session.isClosed()) {
+								throw e;
+							}
 						}
-					}
-				});
-			}
-
-			@Override
-			protected void onCloseSession(SessionChannelNG session) {
-				ssh.disconnect();
-				super.onCloseSession(session);
-			}
-
-			@Override
-			protected void onOpenSession(SessionChannelNG session)
-					throws IOException, SshException, ShellTimeoutException {
-
-				byte[] tmp = new byte[1024];
-				int r;
-				while((r = session.getInputStream().read(tmp)) > -1) {
-					tout.write(tmp, 0, r);
-				}
-				
-				session.close();
-			}
-	
-		};
+					});
+				}).
+				onClose((t, s) -> ssh.disconnect()).
+				build();
 	}
 
 	protected void configureContext(SshClientContext context) throws SshException, IOException {
