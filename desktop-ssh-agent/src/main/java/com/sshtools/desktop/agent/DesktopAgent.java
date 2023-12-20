@@ -36,6 +36,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
 import java.security.NoSuchAlgorithmException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -47,13 +48,17 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.StringTokenizer;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeSet;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.prefs.Preferences;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
@@ -121,16 +126,52 @@ import com.sshtools.desktop.agent.swt.SWTUtil;
 import com.sshtools.desktop.agent.swt.SettingsDialog;
 import com.sshtools.desktop.agent.term.ShellTerminalConnector;
 import com.sshtools.desktop.agent.term.TerminalDisplay;
+import com.sshtools.jaul.AppCategory;
+import com.sshtools.jaul.AppRegistry;
+import com.sshtools.jaul.AppRegistry.App;
+import com.sshtools.jaul.ArtifactVersion;
+import com.sshtools.jaul.AutoPreferenceBasedUpdateableAppContext;
+import com.sshtools.jaul.DummyUpdateService;
+import com.sshtools.jaul.DummyUpdater.DummyUpdaterBuilder;
+import com.sshtools.jaul.JaulApp;
+import com.sshtools.jaul.NoUpdateService;
+import com.sshtools.jaul.Phase;
+import com.sshtools.jaul.UpdateService;
 import com.sshtools.twoslices.Toast;
 import com.sshtools.twoslices.ToastType;
 import com.sshtools.twoslices.ToasterFactory;
 import com.sshtools.twoslices.ToasterSettings;
 
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.IVersionProvider;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Spec;
 import pt.davidafsilva.apple.OSXKeychain;
 import pt.davidafsilva.apple.OSXKeychainException;
 
-public class DesktopAgent extends AbstractAgentProcess {
+@Command(name = "desktop-ssh-agent", description = "Desktop SSH agent", versionProvider = DesktopAgent.Version.class)
+@JaulApp(updatesUrl = "https://sshtools-public.s3.eu-west-1.amazonaws.com/sshagent/${phase}/updates.xml",
+		updaterId = "1241", category = AppCategory.GUI, id = "com.sshtools.DesktopAgent")
+public class DesktopAgent extends AbstractAgentProcess implements Callable<Integer> {
 
+	
+	public final static class Version implements IVersionProvider {
+
+		@Override
+		public String[] getVersion() throws Exception {
+			return new String[] { ArtifactVersion.getVersion("desktop-ssh-agent", "com.sshtools", "desktop-ssh-agent") };
+		}
+		
+	}
+
+	@Option(names = { "--jaul-register" }, hidden = true, description = "Register this application with the JADAPTIVE update system and exit. Usually only called on installation.")
+	boolean jaulRegister;
+
+	@Option(names = { "--jaul-deregister" }, hidden = true, description = "De-register this application from the JADAPTIVE update system and exit. Usually only called on uninstallation.")
+	boolean jaulDeregister;
+	
 	public final static String WINDOWS_NAMED_PIPE = "mobile-ssh-agent";
 	public final static String SSH_AGENT_PIPE = AbstractNamedPipe.NAMED_PIPE_PREFIX + WINDOWS_NAMED_PIPE;
 	
@@ -152,7 +193,6 @@ public class DesktopAgent extends AbstractAgentProcess {
 	Path agentSocketPath;
 	Map<String,JsonConnection> connections = new HashMap<String,JsonConnection>();
 	Map<SshPublicKey, String> deviceKeys = new HashMap<SshPublicKey, String>();
-	Timer timer;
 	
 	InMemoryKeyStore localKeys;
 
@@ -171,13 +211,46 @@ public class DesktopAgent extends AbstractAgentProcess {
 	OSXKeychain keychain = null;
 	
 	ConnectionStore connectionStore = new ConnectionStore();
+	UpdateService updateService;
 	
+	@Spec
+	CommandSpec spec;
+	
+	Optional<App> app;
+	Preferences preferences;
+	
+	boolean firstRun = true;
+	long lastUpdated = System.currentTimeMillis();
+	
+	private ScheduledExecutorService scheduler;
+
 	protected DesktopAgent(Display display, Runnable restartCallback, Runnable shutdownCallback) throws IOException {
 
 		super();
 		this.display = display;
 		this.restartCallback = restartCallback;
 		this.shutdownCallback = shutdownCallback;
+	}
+	
+	public final Integer call() throws Exception {
+		if(jaulDeregister) {
+			AppRegistry.get().deregister(getClass());
+			return 0;
+		}
+		else if(jaulRegister) {
+			AppRegistry.get().register(getClass());
+			return 0;
+		}
+		else {
+			return onCall();
+		}
+	}
+
+	protected Integer onCall() throws Exception {
+		scheduler = Executors.newScheduledThreadPool(1);
+		app = registerApp();
+		preferences = AppRegistry.getBestAppPreferences(app, this);
+		var updateService = getUpdateService();
 		
 		JCEProvider.enableBouncyCastle(true);
 		
@@ -225,57 +298,83 @@ public class DesktopAgent extends AbstractAgentProcess {
 			checkSynchronization();
 			loadKnownHostsFromFile();
 			
-			timer = new Timer("Network Check", true);
-			timer.scheduleAtFixedRate(new TimerTask() {
-				
-				boolean firstRun = true;
-				long lastUpdated = System.currentTimeMillis();
-				
-				@Override
-				public void run() {
-					try {
-						
-						boolean hasCredentials = !StringUtils.isAnyBlank(Settings.getInstance().getLogonboxDomain(), 
-								Settings.getInstance().getLogonboxUsername());
-						
-						if(hasCredentials) {
-							boolean wasOffline = !online.getAndSet(keystore.ping());
-							if(online.get() && (firstRun || wasOffline)) {
-								if(Log.isInfoEnabled()) {
-									Log.info("The agent is back online");
-								}
-								showNotification(ToastType.INFO, "Desktop SSH Agent", String.format("The agent has connected to %s", Settings.getInstance().getLogonboxDomain()));	
-								firstRun = true;
-								Log.info("REMOVE ME ");
-							} else if(!online.get() && (firstRun || !wasOffline)) {
-								if(Log.isInfoEnabled()) {
-									Log.info("The agent is offline");
-								}
-								showNotification(ToastType.WARNING, "Desktop SSH Agent", String.format("The agent %s connected to %s", 
-										firstRun ? "could not be " : "is no longer", Settings.getInstance().getLogonboxDomain()));
+			scheduler.scheduleAtFixedRate(() -> {
+				try {
+					
+					boolean hasCredentials = !StringUtils.isAnyBlank(Settings.getInstance().getLogonboxDomain(), 
+							Settings.getInstance().getLogonboxUsername());
+					
+					if(hasCredentials) {
+						boolean wasOffline = !online.getAndSet(keystore.ping());
+						if(online.get() && (firstRun || wasOffline)) {
+							if(Log.isInfoEnabled()) {
+								Log.info("The agent is back online");
 							}
-							
-							if(online.get() && (firstRun || System.currentTimeMillis() - lastUpdated > 60000L * 10)) {
-								lastUpdated= System.currentTimeMillis();
-								loadConnections();
-								loadDeviceKeys(false);
+							showNotification(ToastType.INFO, "Desktop SSH Agent", String.format("The agent has connected to %s", Settings.getInstance().getLogonboxDomain()));	
+							firstRun = true;
+						} else if(!online.get() && (firstRun || !wasOffline)) {
+							if(Log.isInfoEnabled()) {
+								Log.info("The agent is offline");
 							}
+							showNotification(ToastType.WARNING, "Desktop SSH Agent", String.format("The agent %s connected to %s", 
+									firstRun ? "could not be " : "is no longer", Settings.getInstance().getLogonboxDomain()));
 						}
-
 						
-					} catch (Throwable e) {
-						Log.error("Network check error", e);
-					} finally {
-						firstRun = false;
+						if(online.get() && (firstRun || System.currentTimeMillis() - lastUpdated > 60000L * 10)) {
+							lastUpdated= System.currentTimeMillis();
+							loadConnections();
+							loadDeviceKeys(false);
+						}
+					}
+
+					
+				} catch (Throwable e) {
+					Log.error("Network check error", e);
+				} finally {
+					firstRun = false;
+				}
+			}, 0L, 30, TimeUnit.SECONDS);
+			
+			updateService.setOnAvailableVersion(v -> {
+				if(v != null) {
+					if(preferences.getBoolean("automaticUpdates", true)) {
+						Toast.builder()
+							.type(ToastType.INFO)
+							.title("Updating")
+							.icon(getClass().getResource("/new_icon_white.png"))
+							.content(MessageFormat.format("Updating to version {0}, agent services may be interrupted.", v)).toast();
+						startUpdate();
+					}
+					else {
+						Toast.builder()
+							.type(ToastType.INFO)
+							.title("Update Available")
+							.icon(getClass().getResource("/new_icon_white.png"))
+							.action("Update", () -> startUpdate())
+							.action("Later", () -> updateService.deferUpdate())
+							.content(MessageFormat.format("An update to version {0} is now available.", v)).toast();	
 					}
 				}
-			}, 0L, 30000L);
+			});
+			updateService.rescheduleCheck();
 			
 			runSWT();
 		} catch (Throwable t) {
 			Log.error("Failed to startup MobileAgent", t);
 			showFatalError(t.getMessage());
 		}
+		return 0;
+	}
+
+	private void startUpdate() {
+		new Thread(() -> {
+			try {
+				getUpdateService().update();
+			} catch (IOException ioe) {
+				Log.error("Failed to update", ioe);
+				showNotification(ToastType.ERROR, "Failed to update.", ioe.getMessage());
+			}
+		}).start();
 	}
 	
 	private void showNotification(ToastType type, String title, String text) {
@@ -473,10 +572,33 @@ public class DesktopAgent extends AbstractAgentProcess {
 						new Image(display, DesktopAgent.class.getResourceAsStream("/new_icon_black.png")),
 						"Desktop SSH Agent", "A cross-platform SSH Key Agent and Connection Manager", 
 						String.format("\u00a9 2003-%d JADAPTIVE Limited", Calendar.getInstance().get(Calendar.YEAR)),
-						"https://jadaptive.com");
+						"https://jadaptive.com", DesktopAgent.this);
 			}
 		});
 
+	}
+
+	public final void update(Consumer<IOException> onError) {
+		getUpdateService().getContext().getScheduler().execute(() -> {
+			try {
+				updateService.update();
+			} catch (IOException ioe) {
+				ioe.printStackTrace();
+				onError.accept(ioe);
+			}
+		});
+	}
+
+	public final void updateCheck(Consumer<Boolean> onResult, Consumer<IOException> onError) {
+		getUpdateService().getContext().getScheduler().execute(() -> {
+			try {
+				getUpdateService().checkForUpdate();
+				onResult.accept(updateService.isNeedsUpdating());
+			} catch (IOException ioe) {
+				ioe.printStackTrace();
+				onError.accept(ioe);
+			}
+		});
 	}
 	
 	public void showSettings() {
@@ -1181,9 +1303,8 @@ public class DesktopAgent extends AbstractAgentProcess {
 	}
 	
 	public static void main(String[] args) {
-
 		try {
-			new DesktopAgent(new Display(), new Runnable() {
+			var cmd = new DesktopAgent(new Display(), new Runnable() {
 				public void run() {
 					System.exit(99);
 				}
@@ -1192,6 +1313,7 @@ public class DesktopAgent extends AbstractAgentProcess {
 					System.exit(0);
 				}
 			});
+			System.exit(new CommandLine(cmd).execute(args));
 		} catch (Throwable t) {
 			Log.error("Error in main", t);
 		}
@@ -2455,6 +2577,44 @@ public class DesktopAgent extends AbstractAgentProcess {
 			}
 		});
 	}
-	
+
+	public UpdateService getUpdateService() {
+		if (updateService == null)
+			updateService = createUpdateService();
+		return updateService;
+	}
+
+	public final String getVersion() {
+		return spec.version()[0];
+	}
+
+	protected UpdateService createUpdateService() {
+		var ctx = new AutoPreferenceBasedUpdateableAppContext(preferences, Optional.of(Phase.STABLE), getVersion(), scheduler, true);
+		try {
+			if ("true".equals(System.getProperty("commands.dummyUpdates"))) {
+				return new DummyUpdateService(ctx, DummyUpdaterBuilder.builder(), getVersion());
+			}
+			if(app.isPresent()) {
+				return new Install4JUpdateService(ctx, getVersion(), app.get());
+			}
+			else {
+				return new NoUpdateService(ctx);
+			}
+		} catch (Throwable t) {
+			System.err.println("Failed to create Install4J update service, using dummy service.");
+			t.printStackTrace();
+			return new NoUpdateService(ctx);
+		}
+	}
+
+	private Optional<App> registerApp() {
+		try {
+			return Optional.of(AppRegistry.get().get(this.getClass()));
+		}
+		catch(Exception e) {
+			System.err.println(MessageFormat.format("Failed to register app. No Jaul update features will be available, and application preferences root is now determined by the class name {0}. {1}", getClass().getName(), e.getMessage() == null ? "No message supplied." : e.getMessage()));
+			return Optional.empty();
+		}
+	}
 
 }

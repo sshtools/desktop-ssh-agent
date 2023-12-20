@@ -23,7 +23,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.sshtools</groupId>
 	<artifactId>desktop-ssh-agent-group</artifactId>
-	<version>3.1.2-SNAPSHOT</version>
+	<version>3.2.0-SNAPSHOT</version>
 	<name>Desktop SSH Agent</name>
 	<description>Cross Platform, open-source Desktop SSH Agent</description>
 	<url>http://www.jadaptive.com</url>
@@ -73,8 +73,8 @@
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>3.1</version>
 				<configuration>
-					<source>11</source>
-					<target>11</target>
+					<source>17</source>
+					<target>17</target>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -119,26 +119,6 @@
 							<goal>format</goal>
 							<goal>remove</goal>
 						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>copy-dependencies</id>
-						<phase>prepare-package</phase>
-						<goals>
-							<goal>copy-dependencies</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>${project.build.directory}/third-party</outputDirectory>
-							<overWriteReleases>true</overWriteReleases>
-							<overWriteSnapshots>true</overWriteSnapshots>
-							<overWriteIfNewer>true</overWriteIfNewer>
-							<excludeGroupIds>junit,org.hamcrest,org.eclipse.platform</excludeGroupIds>
-						</configuration>
 					</execution>
 				</executions>
 			</plugin>
