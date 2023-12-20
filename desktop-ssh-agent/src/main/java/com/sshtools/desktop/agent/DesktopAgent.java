@@ -18,6 +18,7 @@
  */
 package com.sshtools.desktop.agent;
 
+
 import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.File;
@@ -130,11 +131,7 @@ import com.sshtools.jaul.AppCategory;
 import com.sshtools.jaul.AppRegistry;
 import com.sshtools.jaul.AppRegistry.App;
 import com.sshtools.jaul.ArtifactVersion;
-import com.sshtools.jaul.AutoPreferenceBasedUpdateableAppContext;
-import com.sshtools.jaul.DummyUpdateService;
-import com.sshtools.jaul.DummyUpdater.DummyUpdaterBuilder;
 import com.sshtools.jaul.JaulApp;
-import com.sshtools.jaul.NoUpdateService;
 import com.sshtools.jaul.Phase;
 import com.sshtools.jaul.UpdateService;
 import com.sshtools.twoslices.Toast;
@@ -2580,31 +2577,12 @@ public class DesktopAgent extends AbstractAgentProcess implements Callable<Integ
 
 	public UpdateService getUpdateService() {
 		if (updateService == null)
-			updateService = createUpdateService();
+			updateService =  UpdateService.autoUpdateService(preferences, Optional.of(Phase.STABLE), app, getVersion(), scheduler);
 		return updateService;
 	}
 
 	public final String getVersion() {
 		return spec.version()[0];
-	}
-
-	protected UpdateService createUpdateService() {
-		var ctx = new AutoPreferenceBasedUpdateableAppContext(preferences, Optional.of(Phase.STABLE), getVersion(), scheduler, true);
-		try {
-			if ("true".equals(System.getProperty("commands.dummyUpdates"))) {
-				return new DummyUpdateService(ctx, DummyUpdaterBuilder.builder(), getVersion());
-			}
-			if(app.isPresent()) {
-				return new Install4JUpdateService(ctx, getVersion(), app.get());
-			}
-			else {
-				return new NoUpdateService(ctx);
-			}
-		} catch (Throwable t) {
-			System.err.println("Failed to create Install4J update service, using dummy service.");
-			t.printStackTrace();
-			return new NoUpdateService(ctx);
-		}
 	}
 
 	private Optional<App> registerApp() {
