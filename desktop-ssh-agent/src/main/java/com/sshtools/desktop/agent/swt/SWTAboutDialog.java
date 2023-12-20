@@ -58,8 +58,9 @@ public class SWTAboutDialog extends Dialog {
 		shell = new Shell(parent, getStyle());
 		shell.setText(getText());
 		shell.setLayout(new GridLayout(1, true));
+		shell.setImage(image);
 		// Common About Details
-		Composite commonAboutDetails = new Composite(shell, SWT.NO_BACKGROUND);
+		Composite commonAboutDetails = new Composite(shell, 0);
 		GridLayout gridLayout = new GridLayout(1, false);
 		gridLayout.verticalSpacing = 10;
 		GridData data = new GridData(GridData.CENTER, GridData.CENTER, true, true);
@@ -155,9 +156,9 @@ public class SWTAboutDialog extends Dialog {
 			}
 		});
 		
-		agent.getUpdateService().setOnBusy((b) -> parent.asyncExec(() -> updateButtonStatus()));
-		agent.getUpdateService().setOnAvailableVersion((v) -> parent.asyncExec(() -> updateButtonStatus()));
-		updateButtonStatus();
+		agent.getUpdateService().setOnBusy((b) -> parent.asyncExec(() -> updateButtonStatus(false)));
+		agent.getUpdateService().setOnAvailableVersion((v) -> parent.asyncExec(() -> updateButtonStatus(false)));
+		updateButtonStatus(true);
 		
 		
 		// Accessory
@@ -181,7 +182,7 @@ public class SWTAboutDialog extends Dialog {
 		return accessory;
 	}
 	
-	private void updateButtonStatus() {
+	private void updateButtonStatus(boolean initial) {
 		if(agent.getUpdateService().isUpdating()) {
 			checkUpdateButton.setText("Please Wait");
 			checkUpdateButton.setEnabled(false);
@@ -197,9 +198,15 @@ public class SWTAboutDialog extends Dialog {
 			checkUpdateButton.setText("Update");
 			newVersionLabel.setText("Version " + agent.getUpdateService().getAvailableVersion() + " is available.");
 		}
-		else {
+		else if(initial) {
 			checkUpdateButton.setEnabled(true);
 			newVersionLabel.setVisible(false);
+			checkUpdateButton.setText("Check For Update");
+		}
+		else {
+			checkUpdateButton.setEnabled(true);
+			newVersionLabel.setVisible(true);
+			newVersionLabel.setText("No updates are available.");
 			checkUpdateButton.setText("Check For Update");
 		}
 	}
