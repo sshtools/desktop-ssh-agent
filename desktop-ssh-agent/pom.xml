@@ -316,14 +316,38 @@
 		<repository>
 			<id>sshtools-releases</id>
 			<name>sshtools-releases</name>
-			<snapshots><enabled>false</enabled></snapshots>
+			<releases/>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
 			<url>https://artifactory.jadaptive.com/public-releases</url>
 		</repository>
 		<repository>
 			<id>sshtools-snapshots</id>
 			<name>sshtools-snapshots</name>
-			<snapshots><enabled>true</enabled></snapshots>
+			<snapshots/>
+        	<releases>
+				<enabled>false</enabled>				
+			</releases>
 			<url>https://artifactory.jadaptive.com/public-snapshots</url>
+		</repository>
+		<repository>
+			<id>opensource-releases</id>
+			<name>opensource-releases</name>
+			<releases/>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+			<url>https://artifactory.jadaptive.com/opensource-releases</url>
+		</repository>
+		<repository>
+			<id>opensource-snapshots</id>
+			<name>sshtools-snapshots</name>
+			<snapshots/>
+        	<releases>
+				<enabled>false</enabled>				
+			</releases>
+			<url>https://artifactory.jadaptive.com/opensource-snapshots</url>
 		</repository>
 		<repository>
 			<id>ej-technologies</id>
