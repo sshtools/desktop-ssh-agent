@@ -32,6 +32,7 @@
 	</parent>
 	<name>Desktop SSH Agent</name>
 	<artifactId>desktop-ssh-agent</artifactId>
+	
 	<profiles>
 		<profile>
 			<!-- There are no longer any 32 bit SWT builds for Linux it seems, this 

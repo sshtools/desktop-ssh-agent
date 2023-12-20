@@ -57,12 +57,12 @@
 	
 	<distributionManagement>
 		<snapshotRepository>
-			<id>ossrh-sshtools</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+			<id>opensource-snapshots</id>
+			<url>https://artifactory.jadaptive.com/opensource-snapshots</url>
 		</snapshotRepository>
 		<repository>
-			<id>ossrh-sshtools</id>
-			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+			<id>opensource-releases</id>
+			<url>https://artifactory.jadaptive.com/opensource-releases</url>
 		</repository>
 	</distributionManagement>
 
