@@ -158,7 +158,7 @@
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>jaul</artifactId>
-			<version>0.0.4</version>
+			<version>0.9.9</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
