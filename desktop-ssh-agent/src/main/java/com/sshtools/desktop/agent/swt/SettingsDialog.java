@@ -64,12 +64,12 @@ public class SettingsDialog extends Dialog {
 	Combo phase;
 	Text username;
 	Text deviceName;
-	Text hostname;
-	Text port;
+//	Text hostname;
+//	Text port;
 	Button strictSSL;
-	Button authorize;
-	Button synchronizeKeys;
 	Button automaticUpdates;
+//	Button authorize;
+//	Button synchronizeKeys;
 	
 	Text logonboxUsername;
 	Text logonboxDomain;
@@ -131,9 +131,9 @@ public class SettingsDialog extends Dialog {
 		tabTerminal.setText("Terminal");
 		tabTerminal.setControl(new TerminalPreferencePanel(tabFolder));
 	
-		TabItem tabAccount = new TabItem(tabFolder, SWT.NONE);
-		tabAccount.setText("Key Management");
-		tabAccount.setControl(new AccountPreferencePanel(tabFolder));
+//		TabItem tabAccount = new TabItem(tabFolder, SWT.NONE);
+//		tabAccount.setText("Key Management");
+//		tabAccount.setControl(new AccountPreferencePanel(tabFolder));
 		
 		TabItem tabLogonbox = new TabItem(tabFolder, SWT.NONE);
 		tabLogonbox.setText("LogonBox Authenticator");
@@ -178,12 +178,12 @@ public class SettingsDialog extends Dialog {
 			Settings.getInstance().setLogonboxUsername(logonboxUsername.getText());
 			Settings.getInstance().setLogonboxPort(Integer.parseInt(logonboxPort.getText()));
 			
-			Settings.getInstance().setSshteamDomain(hostname.getText());
-			Settings.getInstance().setSshteamUsername(username.getText());
-			Settings.getInstance().setSshteamPort(Integer.parseInt(port.getText()));
-			Settings.getInstance().setSynchronizeKeys(synchronizeKeys.getSelection());
-			
-			Settings.getInstance().setStrictSSL(!strictSSL.getSelection());
+//			Settings.getInstance().setSshteamDomain(hostname.getText());
+//			Settings.getInstance().setSshteamUsername(username.getText());
+//			Settings.getInstance().setSshteamPort(Integer.parseInt(port.getText()));
+//			Settings.getInstance().setSynchronizeKeys(synchronizeKeys.getSelection());
+//			
+//			Settings.getInstance().setStrictSSL(!strictSSL.getSelection());
 			Settings.getInstance().save();
 			
 
@@ -197,63 +197,63 @@ public class SettingsDialog extends Dialog {
 		}
 	}
 
-	class AccountPreferencePanel extends Composite {
-	
-		public AccountPreferencePanel(Composite c) {
-			super(c, SWT.NO_BACKGROUND);
-		    GridLayout layout = new GridLayout(1, true);
-		    layout.marginBottom = layout.marginTop = layout.marginLeft = layout.marginRight = 8;
-			this.setLayout(layout);
-			
-			Link linkButton = new Link(this, SWT.WRAP);
-//			Connect your <a href=\"https://jadaptive.com/app/manpage/en/article/3472779\">LogonBox Authenticator</a> app to use LogonBox credentials to log into your SSH services.
-			linkButton.setText("Connect to a <a href=\"https://ssh.team/\">ssh.team</a> domain to synchronize your keys with your key management account.");
-			linkButton.addSelectionListener(new SelectionListener() {
-
-				@Override
-				public void widgetSelected(SelectionEvent e) {
-					try {
-						Desktop.getDesktop().browse(new URI("https://ssh.team/"));
-					} catch (IOException | URISyntaxException e1) {
-					}
-				}
-
-				@Override
-				public void widgetDefaultSelected(SelectionEvent e) {
-				}
-				
-			});
-			
-			new Label(this, SWT.NONE).setText("To push keys from this agent to your key server ensure you have at least one public key");
-			new Label(this, SWT.NONE).setText("configured on the server from your agents private key list.");
-			new Label(this, SWT.NONE).setText("");
-			new Label(this, SWT.NONE).setText("Account Name");
-		    
-		    username = new Text(this, SWT.SINGLE | SWT.BORDER);
-		    username.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		    username.setText(StringUtils.defaultString(Settings.getInstance().getSshteamUsername()));
-		    
-		    new Label(this, SWT.NONE).setText("Hostname");
-		    
-		    hostname = new Text(this, SWT.SINGLE | SWT.BORDER);
-		    hostname.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		    hostname.setText(StringUtils.defaultString(Settings.getInstance().getSshteamDomain()));
-		    
-		    new Label(this, SWT.NONE).setText("Port");
-		    
-		    port = new Text(this, SWT.SINGLE | SWT.BORDER);
-		    port.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		    port.setText(String.valueOf(Settings.getInstance().getSshteamPort()));
-		    new Label(this, SWT.NONE);
-		    
-		    synchronizeKeys = new Button(this, SWT.CHECK);
-		    synchronizeKeys.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		    synchronizeKeys.setSelection(Settings.getInstance().isSynchronizeKeys());
-		    synchronizeKeys.setText("Synchronize public keys with your ssh.team domain.");
-		    new Label(this, SWT.NONE);
-		   
-		}
-	}
+//	class AccountPreferencePanel extends Composite {
+//	
+//		public AccountPreferencePanel(Composite c) {
+//			super(c, SWT.NO_BACKGROUND);
+//		    GridLayout layout = new GridLayout(1, true);
+//		    layout.marginBottom = layout.marginTop = layout.marginLeft = layout.marginRight = 8;
+//			this.setLayout(layout);
+//			
+//			Link linkButton = new Link(this, SWT.WRAP);
+////			Connect your <a href=\"https://jadaptive.com/app/manpage/en/article/3472779\">LogonBox Authenticator</a> app to use LogonBox credentials to log into your SSH services.
+//			linkButton.setText("Connect to a <a href=\"https://ssh.team/\">ssh.team</a> domain to synchronize your keys with your key management account.");
+//			linkButton.addSelectionListener(new SelectionListener() {
+//
+//				@Override
+//				public void widgetSelected(SelectionEvent e) {
+//					try {
+//						Desktop.getDesktop().browse(new URI("https://ssh.team/"));
+//					} catch (IOException | URISyntaxException e1) {
+//					}
+//				}
+//
+//				@Override
+//				public void widgetDefaultSelected(SelectionEvent e) {
+//				}
+//				
+//			});
+//			
+//			new Label(this, SWT.NONE).setText("To push keys from this agent to your key server ensure you have at least one public key");
+//			new Label(this, SWT.NONE).setText("configured on the server from your agents private key list.");
+//			new Label(this, SWT.NONE).setText("");
+//			new Label(this, SWT.NONE).setText("Account Name");
+//		    
+//		    username = new Text(this, SWT.SINGLE | SWT.BORDER);
+//		    username.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+//		    username.setText(StringUtils.defaultString(Settings.getInstance().getSshteamUsername()));
+//		    
+//		    new Label(this, SWT.NONE).setText("Hostname");
+//		    
+//		    hostname = new Text(this, SWT.SINGLE | SWT.BORDER);
+//		    hostname.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+//		    hostname.setText(StringUtils.defaultString(Settings.getInstance().getSshteamDomain()));
+//		    
+//		    new Label(this, SWT.NONE).setText("Port");
+//		    
+//		    port = new Text(this, SWT.SINGLE | SWT.BORDER);
+//		    port.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+//		    port.setText(String.valueOf(Settings.getInstance().getSshteamPort()));
+//		    new Label(this, SWT.NONE);
+//		    
+//		    synchronizeKeys = new Button(this, SWT.CHECK);
+//		    synchronizeKeys.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+//		    synchronizeKeys.setSelection(Settings.getInstance().isSynchronizeKeys());
+//		    synchronizeKeys.setText("Synchronize public keys with your ssh.team domain.");
+//		    new Label(this, SWT.NONE);
+//		   
+//		}
+//	}
 	
 	class LogonBoxPreferencePanel extends Composite {
 		

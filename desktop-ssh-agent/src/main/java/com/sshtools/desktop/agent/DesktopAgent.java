@@ -280,7 +280,7 @@ public class DesktopAgent extends AbstractAgentProcess implements Callable<Integ
 
 			Runtime.getRuntime().addShutdownHook(new Thread("Shutdown-Thread") {
 				public void run() {
-					quit(false);
+					quit(true);
 				}
 			});
 
@@ -771,8 +771,7 @@ public class DesktopAgent extends AbstractAgentProcess implements Callable<Integ
 				public void handleEvent(Event event) {
 					SWTUtil.safeAsyncExec(new Runnable() {
 						public void run() {
-							System.exit(0);
-//							quit(true);
+							quit(true);
 						}
 					});
 				}

@@ -1,4 +1,32 @@
-Desktop SSH Agent 3.0.3 - TBC
+Desktop Agent 3.2.0 - TBC
+
+- Added automatic updates
+
+--------------------------------
+
+Desktop Agent 3.1.2 - Aug 22, 2023
+
+- Agent fails to quit timely and requires force close on OSX.
+
+--------------------------------
+
+Desktop Agent 3.1.1 - 13 Jun, 2023
+
+- Apple arrch64 version now available.
+- Updated icon.
+- Show popup notification when a local key is used to sign an authentication request.
+
+--------------------------------
+
+Desktop Agent 3.1.0 - 27 Apr, 2023
+
+- Integrates with SSH Key Management for Teams key management service.
+- Added keyring support
+- Supports key rotation policy via SSH Key Management for Teams.
+
+--------------------------------
+
+Desktop SSH Agent 3.0.3 - Feb 1, 2023
 
 - Support for permanent passphrase storage in local OS key chain
 
