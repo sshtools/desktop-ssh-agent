@@ -21,9 +21,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<properties>
-		<swt.version>3.123.0</swt.version>
-		<maven.compiler.source>17</maven.compiler.source>
-		<maven.compiler.target>17</maven.compiler.target>
+		<swt.version>3.127.0</swt.version>
+		<maven.compiler.source>21</maven.compiler.source>
+		<maven.compiler.target>21</maven.compiler.target>
 	</properties>
 	<parent>
 		<groupId>com.sshtools</groupId>
@@ -42,6 +42,29 @@
 			<activation>
 				<os>
 					<name>linux</name>
+					<arch>amd64</arch>
+				</os>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>org.eclipse.platform</groupId>
+					<artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId>
+					<version>${swt.version}</version>
+					<exclusions>
+						<exclusion>
+							<groupId>org.eclipse.platform</groupId>
+							<artifactId>org.eclipse.swt</artifactId>
+						</exclusion>
+					</exclusions>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>tc-swt-linux-aarch64</id>
+			<activation>
+				<os>
+					<name>linux</name>
+					<arch>aarch64</arch>
 				</os>
 			</activation>
 			<dependencies>
@@ -151,14 +174,14 @@
 		<dependency>
 			<groupId>com.install4j</groupId>
 			<artifactId>install4j-runtime</artifactId>
-			<version>10.0.4</version>
+			<version>10.0.8</version>
 			<!-- MUST be provided, the runtime is added by I4J itself -->
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>jaul</artifactId>
-			<version>0.9.9</version>
+			<version>0.9.12-SNAPSHOT</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -169,7 +192,7 @@
 		<dependency>
 			<groupId>info.picocli</groupId>
 			<artifactId>picocli</artifactId>
-			<version>4.6.3</version>
+			<version>4.7.6</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.platform</groupId>
@@ -179,27 +202,27 @@
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-sshagent</artifactId>
-			<version>3.1.1</version>
+			<version>3.1.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-sshagent-jdk16-sockets</artifactId>
-			<version>3.1.1</version>
+			<version>3.1.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-sshagent-named-pipes</artifactId>
-			<version>3.1.1</version>
+			<version>3.1.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-bc</artifactId>
-			<version>3.1.1</version>
+			<version>3.1.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-synergy-client</artifactId>
-			<version>3.1.1</version>
+			<version>3.1.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
@@ -209,22 +232,22 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-text</artifactId>
-			<version>1.4</version>
+			<version>1.12.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-core</artifactId>
-			<version>2.12.6</version>
+			<version>2.17.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
-			<version>2.12.6</version>
+			<version>2.17.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.12.6.1</version>
+			<version>2.17.0</version>
 		</dependency>
 		<dependency>
 		    <groupId>de.swiesend</groupId>
@@ -251,7 +274,7 @@
 		<dependency>
 			<groupId>com.github.hypfvieh</groupId>
 			<artifactId>dbus-java-transport-native-unixsocket</artifactId>
-			<version>4.2.1</version>
+			<version>4.3.2</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -262,17 +285,17 @@
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-text</artifactId>
-			<version>1.4</version>
+			<version>1.12.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>two-slices</artifactId>
-			<version>0.9.1</version>
+			<version>0.9.4</version>
 		</dependency>
 		<dependency>
 		    <groupId>org.slf4j</groupId>
 		    <artifactId>slf4j-simple</artifactId>
-		    <version>2.0.6</version>
+		    <version>2.0.9</version>
 		</dependency>
 		<!-- https://mvnrepository.com/artifact/com.github.javakeyring/java-keyring -->
 		<dependency>
@@ -358,7 +381,7 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-antrun-plugin</artifactId>
-				<version>1.8</version>
+				<version>3.1.0</version>
 				<executions>
 					<execution>
 						<phase>install</phase>
