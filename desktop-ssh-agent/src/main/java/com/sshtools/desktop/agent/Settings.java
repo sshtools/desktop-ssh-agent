@@ -110,7 +110,7 @@ public class Settings {
 				
 				String[] keyfiles = properties.getProperty("loadFiles").split(File.pathSeparator);
 				for(String keyfile : keyfiles) {
-					File file = new File(keyfile);
+					File file = new File(keyfile.replace("~", System.getProperty("user.home")));
 					this.keyfiles.add(file);
 				}
 			}
@@ -138,11 +138,16 @@ public class Settings {
 		properties.put("iconMode", iconMode.name());
 		
 		StringBuffer buf = new StringBuffer();
+		String home = System.getProperty("user.home", "");
 		for(File keyfile : keyfiles) {
 			if(buf.length() > 0) {
 				buf.append(File.pathSeparator);
 			}	
-			buf.append(keyfile.getAbsolutePath());
+			String apath = keyfile.getAbsolutePath();
+			if(!home.equals("") && apath.startsWith(home + File.separator)) {
+				apath = "~" + apath.substring(home.length());
+			}
+			buf.append(apath);
 		}
 		properties.put("loadFiles", buf.toString());
 		
