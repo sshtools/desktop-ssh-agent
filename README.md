@@ -5,4 +5,4 @@ This application can be used as a GUI direct replacement for ssh-agent on Linux,
 The agent also allows you to manage your host keys and can be used to store and use private keys on your mobile phone.
 
 Binary installers can be downloaded from:
-https://www.jadaptive.com/en/products/desktop-ssh-agent
+https://jadaptive.com/desktop-ssh-agent/
