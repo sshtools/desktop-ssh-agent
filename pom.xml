@@ -31,6 +31,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<synergy.version>3.1.4</synergy.version>
 	</properties>
 
 	<licenses>
