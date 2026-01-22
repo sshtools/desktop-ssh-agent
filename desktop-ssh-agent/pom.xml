@@ -174,7 +174,7 @@
 		<dependency>
 			<groupId>com.install4j</groupId>
 			<artifactId>install4j-runtime</artifactId>
-			<version>10.0.8</version>
+			<version>10.0.9</version>
 			<!-- MUST be provided, the runtime is added by I4J itself -->
 			<scope>provided</scope>
 		</dependency>
@@ -202,27 +202,27 @@
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-sshagent</artifactId>
-			<version>3.1.2</version>
+			<version>3.1.4</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-sshagent-jdk16-sockets</artifactId>
-			<version>3.1.2</version>
+			<version>3.1.4</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-sshagent-named-pipes</artifactId>
-			<version>3.1.2</version>
+			<version>3.1.4</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-bc</artifactId>
-			<version>3.1.2</version>
+			<version>3.1.4</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>maverick-synergy-client</artifactId>
-			<version>3.1.2</version>
+			<version>3.1.4</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
@@ -321,12 +321,15 @@
 	</dependencies>
 	<repositories>
 		<repository>
-			<id>oss-snapshots</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-			<snapshots />
+			<name>Central Portal Snapshots</name>
+			<id>central-portal-snapshots</id>
+			<url>https://central.sonatype.com/repository/maven-snapshots/</url>
 			<releases>
 				<enabled>false</enabled>
 			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
 		</repository>
 		<repository>
 			<id>ext-snapshots-local</id>
