@@ -258,7 +258,7 @@ public abstract class AbstractTerminalConnector {
 					}
 				});
 			})
-			.onOpen((task, session)-> {
+			.onTask((task, session)-> {
 				session.getInputStream().transferTo(tout);
 				session.close();
 			})
