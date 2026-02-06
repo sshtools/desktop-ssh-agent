@@ -174,14 +174,14 @@
 		<dependency>
 			<groupId>com.install4j</groupId>
 			<artifactId>install4j-runtime</artifactId>
-			<version>10.0.8</version>
+			<version>11.0.5</version>
 			<!-- MUST be provided, the runtime is added by I4J itself -->
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>jaul</artifactId>
-			<version>0.9.14</version>
+			<version>0.9.24</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -371,10 +371,6 @@
 				<enabled>false</enabled>				
 			</releases>
 			<url>https://artifactory.jadaptive.com/opensource-snapshots</url>
-		</repository>
-		<repository>
-			<id>ej-technologies</id>
-			<url>https://maven.ej-technologies.com/repository</url>
 		</repository>
 	</repositories>
 	<build>
