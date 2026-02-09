@@ -271,10 +271,12 @@
 			<artifactId>terminal-swt</artifactId>
 			<version>3.0.0-SNAPSHOT</version>
 		</dependency>
+		<!-- NOTE: We are limited to 4.2.1 dbus because of java-keyring and  
+			       secret-service dependencies.  -->
 		<dependency>
 			<groupId>com.github.hypfvieh</groupId>
 			<artifactId>dbus-java-transport-native-unixsocket</artifactId>
-			<version>4.3.2</version>
+			<version>4.2.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
